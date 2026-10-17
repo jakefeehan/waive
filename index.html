@@ -1042,11 +1042,11 @@ function atSpot(key, fn) { const prev = SPOT; SPOT = SPOTS[key]; try { return fn
 function spotNow(key) { return atSpot(key, () => derive(HOURS_DATA[selected], spotProfile())); }
 
 function renderBoards() {
-  $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText + " long"}</small></button>`).join("");
+  $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText}</small></button>`).join("");
   $("skills").innerHTML = Object.entries(SKILLS).map(([k, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === skillKey}">${v.label}</button>`).join("");
   $("skills").querySelectorAll("button").forEach(btn => btn.onclick = () => { skillKey = btn.dataset.k; store.set("waive.skill", skillKey); renderBoards(); refresh(); });
   $("skillAbout").textContent = SKILLS[skillKey].about;
-  const B = BOARDS[boardKey]; $("boardAbout").innerHTML = `<b>${B.label}, ${B.len[0] === B.len[1] ? B.lenText : "usually " + B.lenText} long.</b> ${B.about}`;
+  const B = BOARDS[boardKey]; $("boardAbout").innerHTML = `<b>${B.label}, ${B.len[0] === B.len[1] ? B.lenText : "usually " + B.lenText}.</b> ${B.about}`;
   $("boards").querySelectorAll("button").forEach(btn => btn.onclick = () => { boardKey = btn.dataset.k; store.set("waive.board", boardKey); renderBoards(); renderTune(); refresh(); });
 }
 function renderTune() {
