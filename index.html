@@ -21,7 +21,7 @@
   --sea-soft: #b9dce3;
   --sand: #d9b779;
   --night: rgba(15, 42, 51, 0.07);
-  --water: #cfe4ec; --land: #e3e7df; --land-ink: #7d8c8a; --beach: #e2cd9c;
+  --water: #cfe5ee; --water-deep: #a6cddb; --wave: #ffffff; --land: #e9ece7; --land-ink: #6c7c79; --beach: #eadcb0; --road: #ffffff; --road-casing: #cdd6d2; --road-major: #fff4d4; --road-major-casing: #d6c183; --boardwalk: #b08a45; --meter: #d9622b; --park: #2f6fd6;
   --r1: #e05252;
   --r2: #c9a24a;
   --r3: #e2b93b;
@@ -35,7 +35,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
     --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
-    --water: #0e2a36; --land: #1a2c2f; --land-ink: #6f8586; --beach: #8a7a55;
+    --water: #0e2a36; --water-deep: #081c26; --wave: #8fd3e8; --land: #17282b; --land-ink: #7f9496; --beach: #6e6244; --road: #2a4146; --road-casing: #0f1c1f; --road-major: #3d575c; --road-major-casing: #0f1c1f; --boardwalk: #c9a86a; --meter: #f08a55; --park: #6b9bff;
     --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
     color-scheme: dark;
   }
@@ -43,7 +43,7 @@
 :root[data-theme="dark"] {
   --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
   --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
-  --water: #0e2a36; --land: #1a2c2f; --land-ink: #6f8586; --beach: #8a7a55;
+  --water: #0e2a36; --water-deep: #081c26; --wave: #8fd3e8; --land: #17282b; --land-ink: #7f9496; --beach: #6e6244; --road: #2a4146; --road-casing: #0f1c1f; --road-major: #3d575c; --road-major-casing: #0f1c1f; --boardwalk: #c9a86a; --meter: #f08a55; --park: #6b9bff;
   --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
   color-scheme: dark;
 }
@@ -73,17 +73,37 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .spots button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .mapgrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 760px) { .mapgrid { grid-template-columns: 1fr; } }
-.mappanel { padding: 0; overflow: hidden; }
+.mappanel { padding: 0; overflow: hidden; position: relative; }
+.mapwrap { position: relative; }
+.mapctl { position: absolute; top: 10px; right: 10px; display: grid; gap: 6px; }
+.mapctl button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 1.1rem var(--font-body); cursor: pointer; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
+.mapchips { position: absolute; top: 10px; left: 10px; display: grid; gap: 6px; justify-items: start; pointer-events: none; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); font: 600 0.8rem var(--font-data); }
+@media (max-width: 700px) { .mapwrap { display: flex; flex-direction: column; } .mapchips { position: static; order: -1; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; } .mapctl { top: 56px; } }
+.mchip span:last-child { color: var(--ink); }
+.mapnote { position: absolute; left: 10px; bottom: 10px; display: flex; align-items: flex-end; gap: 12px; pointer-events: none; font: 500 0.74rem var(--font-data); color: var(--ink); }
+.mapnote .scale { display: grid; gap: 2px; justify-items: start; } .mapnote .scale i { display: block; height: 7px; border: 2px solid var(--ink); border-top: none; background: transparent; min-width: 20px; }
+.mapnote .north { width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; }
+.maplegend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-2); background: var(--surface); }
+.maplegend span { display: inline-flex; align-items: center; gap: 6px; }
+.ptips { margin: 0 0 12px; font-size: 0.86rem; } .ptips summary { cursor: pointer; color: var(--sea); font-weight: 600; } .ptips ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); } .ptips a { color: var(--sea); }
 #map { display: block; width: 100%; height: auto; background: var(--water); }
 #map text { font-family: var(--font-body); }
 #map .pin { cursor: pointer; outline: none; }
 #map .pin:focus-visible circle.hit { stroke: var(--ink); stroke-width: 3; }
 #map .pin circle.dot { transition: r .12s; }
 #map .rt { font: 700 14px var(--font-data); fill: #0f2a33; paint-order: stroke; stroke: rgba(255, 255, 255, 0.8); stroke-width: 3px; stroke-linejoin: round; text-anchor: middle; }
-#map .nm { font: 600 15px var(--font-body); fill: var(--ink); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
+#map .nm { font: 600 15px var(--font-body); fill: var(--ink); }
 #map .nm.sel { font-weight: 700; }
-#map .sub { font: 500 12px var(--font-data); fill: var(--ink-2); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
-#map .tw { font: 600 12px var(--font-data); fill: var(--ink); paint-order: stroke; stroke: var(--land); stroke-width: 3px; stroke-linejoin: round; }
+#map .sub { font: 500 12px var(--font-data); fill: var(--ink-2); }
+#map .st { font: 600 10.5px var(--font-body); fill: var(--ink-2); paint-order: stroke; stroke: var(--land); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+#map .st.big { font-size: 12px; fill: var(--ink); }
+#map .st.road { font: 600 11px var(--font-body); letter-spacing: 0.04em; fill: var(--land-ink); stroke: var(--road); stroke-width: 0; }
+#map .st.walk { fill: var(--boardwalk); }
+#map .pt { font: 800 14px var(--font-body); } #map .pt.s { font-size: 9px; }
+#map .pk { cursor: help; }
+#map { cursor: grab; touch-action: pan-y; }
+#map .tw { font: 700 12px var(--font-data); fill: var(--ink); paint-order: stroke; stroke: var(--beach); stroke-width: 3px; stroke-linejoin: round; }
 #map .tower { pointer-events: all; }
 .maptools { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 0.88rem; }
 .maptools input { accent-color: var(--sea); }
@@ -217,9 +237,23 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
       <h2>Pacific Beach breaks</h2>
       <p class="muted" style="margin:4px 0 0" id="mapSub">Tap a break to see its conditions.</p>
     </div>
-    <div class="maptools"><label for="towerToggle"><input type="checkbox" id="towerToggle" checked> Show lifeguard towers</label><span class="muted" id="towerKey">House icons are lifeguard towers. Filled ones are year-round stations.</span></div>
+    <div class="maptools"><label for="towerToggle"><input type="checkbox" id="towerToggle" checked> Show lifeguard towers</label><label for="parkToggle"><input type="checkbox" id="parkToggle" checked> Show parking</label><span class="muted">Drag the map to move it. Use + and − to zoom.</span></div>
     <div class="mapgrid">
-      <div class="panel mappanel"><svg id="map" viewBox="0 0 600 640" role="group" aria-label="Map of the Pacific Beach breaks, north at the top"></svg></div>
+      <div class="panel mappanel">
+        <div class="mapwrap">
+          <svg id="map" viewBox="0 0 600 640" role="group" aria-label="Map of the Pacific Beach breaks and streets, north at the top"></svg>
+          <div class="mapchips" id="mapChips"></div>
+          <div class="mapctl"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomReset" aria-label="Reset map view">⌂</button></div>
+          <div class="mapnote"><div class="north" aria-hidden="true">N</div><div class="scale"><i id="scaleBar"></i><span>500 m</span></div></div>
+        </div>
+        <div class="maplegend">
+          <span><svg width="16" height="16" viewBox="-9 -11 18 20" aria-hidden="true"><path d="M-6,6 V-1 L0,-9 L6,-1 V6 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/></svg>Lifeguard tower</span>
+          <span><svg width="16" height="16" viewBox="-9 -11 18 20" aria-hidden="true"><path d="M-6,6 V-1 L0,-9 L6,-1 V6 Z" fill="var(--sea)" stroke="var(--ink)" stroke-width="2"/></svg>Year-round station</span>
+          <span><svg width="18" height="18" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="5" fill="var(--park)"/><text x="11" y="16" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">P</text></svg>Free lot</span>
+          <span><svg width="18" height="18" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="5" fill="var(--surface)" stroke="var(--park)" stroke-width="2" stroke-dasharray="4 3"/><text x="11" y="16" text-anchor="middle" font-size="13" font-weight="800" fill="var(--park)">P</text></svg>Paid lot (approximate spot)</span>
+          <span><svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M2,5 H24" stroke="var(--meter)" stroke-width="3.4" stroke-dasharray="1 6" stroke-linecap="round"/></svg>Metered street</span>
+        </div>
+      </div>
       <div class="panel" id="mapCard"></div>
     </div>
   </section>
@@ -353,11 +387,11 @@ const SPOTS = {
     tideNote: "Crystal Pier works best around mid tide when the tide is falling.",
   },
   pbdrive: {
-    name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7912, lon: -117.2573, facing: 255,
+    name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7906, lon: -117.2568, facing: 255,
     exposure: [[200, 295, 1], [185, 200, 0.8], [295, 310, 0.8], [170, 185, 0.55], [310, 320, 0.55], [160, 170, 0.3], [320, 330, 0.3]],
     sizeFactor: 1.1, tideShift: -1, tideWeight: 1,
     type: "Sandbar beach break", bestSwell: "West-southwest", bestWind: "East-northeast (offshore)", bestTide: "Low to mid", reliability: "Fairly consistent",
-    blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell. The city's lifeguard list has no tower on Pacific Beach Drive itself; the closest are Tower 23 (Oliver St) and Tower 24 (Thomas Ave).",
+    blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell. Pacific Beach Drive meets the sand where Ocean Blvd ends and the boardwalk begins, between Tower 23 (Oliver) and Tower 22 (Santa Rita).",
     tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide and get soft and close out at high tide.",
   },
 };
@@ -1024,51 +1058,120 @@ function smooth(pts) {
   }
   return d;
 }
-const arrowAt = (x, y, bearing, len, col) => {
-  const r = bearing * Math.PI / 180, dx = Math.sin(r), dy = -Math.cos(r), hx = x + dx * len, hy = y + dy * len, px = -dy, py = dx;
-  return `<path d="M${x},${y} L${hx},${hy} M${hx},${hy} L${hx - dx * 9 + px * 6},${hy - dy * 9 + py * 6} M${hx},${hy} L${hx - dx * 9 - px * 6},${hy - dy * 9 - py * 6}" stroke="${col}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
-};
+const ROADS = {"Ocean Blvd":{"c":"main","s":[[[32.79061,-117.25515],[32.7915,-117.25537]],[[32.79814,-117.25738],[32.79907,-117.2577]],[[32.79723,-117.25703],[32.79814,-117.25738]],[[32.7915,-117.25537],[32.79245,-117.25558]],[[32.79444,-117.25602],[32.7954,-117.25636]],[[32.8019,-117.25896],[32.80315,-117.25977]],[[32.79907,-117.2577],[32.799,-117.25801]],[[32.80047,-117.25812],[32.80093,-117.25826]],[[32.79957,-117.25769],[32.80003,-117.25783]],[[32.80381,-117.26064],[32.80436,-117.26086]],[[32.80315,-117.25977],[32.80309,-117.26009],[32.80381,-117.26064]],[[32.7963,-117.25668],[32.79698,-117.25694]],[[32.79245,-117.25558],[32.79342,-117.25579]],[[32.7991,-117.25754],[32.79957,-117.25769]],[[32.7954,-117.25636],[32.7963,-117.25668]],[[32.799,-117.25801],[32.7999,-117.25841]],[[32.8,-117.25797],[32.80047,-117.25812]],[[32.8008,-117.25886],[32.80181,-117.25936],[32.8019,-117.25896]],[[32.79342,-117.25579],[32.79444,-117.25602]],[[32.7999,-117.25841],[32.8008,-117.25886]]]},"Mission Blvd":{"c":"major","s":[[[32.78557,-117.25321],[32.78574,-117.25327]],[[32.78524,-117.25308],[32.7854,-117.25315]],[[32.78472,-117.2529],[32.78491,-117.25296]],[[32.78491,-117.25296],[32.78507,-117.25301]],[[32.7854,-117.25315],[32.78557,-117.25321]],[[32.78436,-117.25279],[32.78453,-117.25284]],[[32.78419,-117.25275],[32.78436,-117.25279]],[[32.78387,-117.25267],[32.78404,-117.25271]],[[32.78453,-117.25284],[32.78472,-117.2529]],[[32.78507,-117.25301],[32.78524,-117.25308]],[[32.78404,-117.25271],[32.78419,-117.25275]],[[32.80734,-117.2588],[32.80778,-117.25893]],[[32.80689,-117.25866],[32.80734,-117.2588]],[[32.80822,-117.25907],[32.80865,-117.2592]],[[32.80645,-117.25853],[32.80689,-117.25866]],[[32.80601,-117.25839],[32.80645,-117.25853]],[[32.8017,-117.25707],[32.80216,-117.25721]],[[32.78574,-117.25327],[32.78591,-117.25333]],[[32.78608,-117.25337],[32.78624,-117.25341]],[[32.80122,-117.25693],[32.8017,-117.25707]],[[32.7961,-117.25536],[32.79656,-117.2555]],[[32.78971,-117.25339],[32.79,-117.25348]],[[32.78733,-117.2535],[32.7875,-117.25349]],[[32.79368,-117.25462],[32.79412,-117.25475]],[[32.78915,-117.25328],[32.78935,-117.2533]],[[32.78821,-117.25338],[32.7884,-117.25334]],[[32.78767,-117.25347],[32.78785,-117.25345]],[[32.78659,-117.25347],[32.78676,-117.25349]],[[32.80403,-117.25779],[32.80449,-117.25793]],[[32.79704,-117.25564],[32.7975,-117.25578]],[[32.79412,-117.25475],[32.79468,-117.25492]],[[32.78896,-117.25327],[32.78915,-117.25328]],[[32.78803,-117.25342],[32.78821,-117.25338]],[[32.78785,-117.25345],[32.78803,-117.25342]],[[32.78715,-117.25351],[32.78733,-117.2535]],[[32.80077,-117.25679],[32.80122,-117.25693]],[[32.79273,-117.25432],[32.79368,-117.25462]],[[32.79092,-117.25377],[32.7917,-117.25401]],[[32.78951,-117.25334],[32.78971,-117.25339]],[[32.78878,-117.25327],[32.78896,-117.25327]],[[32.7884,-117.25334],[32.78859,-117.2533]],[[32.7989,-117.25621],[32.79937,-117.25635]],[[32.80499,-117.25808],[32.80553,-117.25825]],[[32.80778,-117.25893],[32.80822,-117.25907]],[[32.80263,-117.25736],[32.80309,-117.2575]],[[32.79937,-117.25635],[32.79983,-117.25651]],[[32.78642,-117.25344],[32.78659,-117.25347]],[[32.78591,-117.25333],[32.78608,-117.25337]],[[32.78624,-117.25341],[32.78642,-117.25344]],[[32.80356,-117.25765],[32.80403,-117.25779]],[[32.80553,-117.25825],[32.80601,-117.25839]],[[32.80216,-117.25721],[32.80263,-117.25736]],[[32.79843,-117.25607],[32.7989,-117.25621]],[[32.7975,-117.25578],[32.79796,-117.25592]],[[32.79656,-117.2555],[32.79704,-117.25564]],[[32.79565,-117.25522],[32.7961,-117.25536]],[[32.7917,-117.25401],[32.79273,-117.25432]],[[32.78935,-117.2533],[32.78951,-117.25334]],[[32.78676,-117.25349],[32.78696,-117.25351]],[[32.79796,-117.25592],[32.79843,-117.25607]],[[32.78696,-117.25351],[32.78715,-117.25351]],[[32.80449,-117.25793],[32.80499,-117.25808]],[[32.8003,-117.25663],[32.80077,-117.25679]],[[32.79983,-117.25651],[32.8003,-117.25663]],[[32.79517,-117.25507],[32.79565,-117.25522]],[[32.7904,-117.2536],[32.79092,-117.25377]],[[32.7875,-117.25349],[32.78767,-117.25347]],[[32.80309,-117.2575],[32.80356,-117.25765]],[[32.79468,-117.25492],[32.79517,-117.25507]],[[32.79,-117.25348],[32.7904,-117.2536]],[[32.78859,-117.2533],[32.78878,-117.25327]]]},"Ocean Front Walk":{"c":"walk","s":[[[32.78495,-117.25398],[32.78529,-117.25404]],[[32.78391,-117.2538],[32.78425,-117.25385]],[[32.78564,-117.2541],[32.78598,-117.25417]],[[32.78461,-117.25391],[32.78495,-117.25398]],[[32.78425,-117.25385],[32.78461,-117.25391]],[[32.78529,-117.25404],[32.78564,-117.2541]],[[32.78598,-117.25417],[32.78634,-117.25423]],[[32.78668,-117.2543],[32.78704,-117.25437]],[[32.78634,-117.25423],[32.78668,-117.2543]],[[32.7897,-117.25493],[32.79061,-117.25515]],[[32.78843,-117.25463],[32.78877,-117.2547]],[[32.78945,-117.25486],[32.7897,-117.25493]],[[32.78877,-117.2547],[32.78911,-117.25478]],[[32.7874,-117.25443],[32.78774,-117.2545]],[[32.78911,-117.25478],[32.78945,-117.25486]],[[32.78809,-117.25456],[32.78843,-117.25463]],[[32.78774,-117.2545],[32.78809,-117.25456]],[[32.78704,-117.25437],[32.7874,-117.25443]]]},"Garnet Ave":{"c":"major","s":[[[32.79859,-117.24636],[32.79898,-117.24454]],[[32.79817,-117.2482],[32.79859,-117.24636]],[[32.79697,-117.25368],[32.79738,-117.25185]],[[32.79641,-117.2562],[32.79656,-117.2555]],[[32.79656,-117.2555],[32.79697,-117.25368]],[[32.79778,-117.25002],[32.79817,-117.2482]],[[32.79738,-117.25185],[32.79778,-117.25002]],[[32.7963,-117.25668],[32.79641,-117.2562]]]},"Grand Ave":{"c":"major","s":[[[32.79626,-117.24761],[32.79667,-117.24577]],[[32.79586,-117.24942],[32.79626,-117.24761]],[[32.79667,-117.24577],[32.79706,-117.24394]],[[32.79444,-117.25602],[32.79454,-117.25556]],[[32.79507,-117.25311],[32.79546,-117.25126]],[[32.79454,-117.25556],[32.79468,-117.25492]],[[32.79468,-117.25492],[32.79507,-117.25311]],[[32.79546,-117.25126],[32.79586,-117.24942]]]},"La Jolla Blvd":{"c":"major","s":[[[32.8093,-117.26455],[32.80938,-117.26464]],[[32.80584,-117.25921],[32.80622,-117.25957]],[[32.80699,-117.26043],[32.80736,-117.26089]],[[32.80791,-117.26174],[32.808,-117.26218]],[[32.80772,-117.26136],[32.80791,-117.26174]],[[32.80662,-117.26001],[32.80699,-117.26043]],[[32.80938,-117.26464],[32.81082,-117.26634]],[[32.80622,-117.25957],[32.80662,-117.26001]],[[32.80847,-117.26356],[32.8093,-117.26455]],[[32.808,-117.26218],[32.80806,-117.26292],[32.80847,-117.26356]],[[32.80491,-117.25843],[32.80584,-117.25921]],[[32.80736,-117.26089],[32.80772,-117.26136]],[[32.81082,-117.26634],[32.81115,-117.26672]]]},"Pacific Beach Dr":{"c":"minor","s":[[[32.79256,-117.24645],[32.79297,-117.24463]],[[32.79216,-117.24826],[32.79256,-117.24645]],[[32.79071,-117.2547],[32.79077,-117.25444]],[[32.79146,-117.25136],[32.79161,-117.2507]],[[32.79092,-117.25377],[32.79121,-117.25247]],[[32.79134,-117.25193],[32.79146,-117.25136]],[[32.79077,-117.25444],[32.79092,-117.25377]],[[32.79121,-117.25247],[32.79134,-117.25193]],[[32.79175,-117.25011],[32.79185,-117.24966]],[[32.79161,-117.2507],[32.79175,-117.25011]],[[32.79061,-117.25515],[32.79071,-117.2547]],[[32.79192,-117.24936],[32.79216,-117.24826]],[[32.79185,-117.24966],[32.79192,-117.24936]]]},"Tourmaline St":{"c":"minor","s":[[[32.80886,-117.24952],[32.80939,-117.24714]],[[32.80589,-117.26092],[32.80558,-117.2619]],[[32.80662,-117.26001],[32.80689,-117.25866]],[[32.80589,-117.26092],[32.80662,-117.26001]],[[32.80533,-117.26188],[32.80536,-117.26131],[32.80589,-117.26092]],[[32.80689,-117.25866],[32.80739,-117.2564]],[[32.80768,-117.255],[32.80807,-117.25318]],[[32.80807,-117.25318],[32.80846,-117.25134]],[[32.80739,-117.2564],[32.80768,-117.255]],[[32.80846,-117.25134],[32.80886,-117.24952]]]},"Law St":{"c":"minor","s":[[[32.80457,-117.24626],[32.80497,-117.24443]],[[32.8019,-117.25896],[32.80185,-117.25863]],[[32.80296,-117.25356],[32.80336,-117.25173]],[[32.80198,-117.25806],[32.80216,-117.25721]],[[32.80417,-117.24809],[32.80457,-117.24626]],[[32.80377,-117.24991],[32.80417,-117.24809]],[[32.80216,-117.25721],[32.80256,-117.25538]],[[32.80336,-117.25173],[32.80377,-117.24991]],[[32.80185,-117.25863],[32.80198,-117.25806]],[[32.80256,-117.25538],[32.80296,-117.25356]]]},"Loring St":{"c":"minor","s":[[[32.80737,-117.24712],[32.80773,-117.24557]],[[32.80784,-117.24579],[32.80814,-117.2443]],[[32.80436,-117.26086],[32.80479,-117.25894]],[[32.80479,-117.25894],[32.80491,-117.25843]],[[32.80537,-117.25624],[32.80547,-117.25583]],[[32.80499,-117.25808],[32.80537,-117.25624]],[[32.80659,-117.25079],[32.80698,-117.24894]],[[32.80622,-117.25262],[32.80659,-117.25079]],[[32.80698,-117.24894],[32.80737,-117.24712]],[[32.80547,-117.25583],[32.80578,-117.25442]],[[32.80578,-117.25442],[32.80622,-117.25262]],[[32.80491,-117.25843],[32.80499,-117.25808]]]},"Diamond St":{"c":"minor","s":[[[32.80177,-117.24539],[32.80217,-117.24358]],[[32.80137,-117.24723],[32.80177,-117.24539]],[[32.7992,-117.25714],[32.79937,-117.25635]],[[32.80038,-117.25173],[32.80056,-117.25087]],[[32.80016,-117.2527],[32.80038,-117.25173]],[[32.80096,-117.24905],[32.80137,-117.24723]],[[32.79937,-117.25635],[32.79977,-117.25453]],[[32.80056,-117.25087],[32.80096,-117.24905]],[[32.7991,-117.25754],[32.7992,-117.25714]],[[32.79977,-117.25453],[32.80016,-117.2527]],[[32.79907,-117.2577],[32.7991,-117.25754]]]},"Hornblend St":{"c":"minor","s":[[[32.79726,-117.2479],[32.79764,-117.24609]],[[32.79686,-117.24973],[32.79726,-117.2479]],[[32.79764,-117.24609],[32.79806,-117.24425]],[[32.79605,-117.2534],[32.79645,-117.25156]],[[32.79645,-117.25156],[32.79686,-117.24973]],[[32.7954,-117.25636],[32.79551,-117.25585]],[[32.79565,-117.25522],[32.79605,-117.2534]],[[32.79551,-117.25585],[32.79565,-117.25522]]]},"Thomas Ave":{"c":"minor","s":[[[32.79527,-117.2473],[32.79567,-117.24548]],[[32.79567,-117.24548],[32.79608,-117.24364]],[[32.79385,-117.25383],[32.79392,-117.25349]],[[32.79448,-117.25095],[32.79488,-117.24912]],[[32.79368,-117.25462],[32.79385,-117.25383]],[[32.79407,-117.25279],[32.79448,-117.25095]],[[32.79392,-117.25349],[32.79407,-117.25279]],[[32.79488,-117.24912],[32.79527,-117.2473]],[[32.79354,-117.25525],[32.79368,-117.25462]],[[32.79342,-117.25579],[32.79354,-117.25525]]]},"Reed Ave":{"c":"minor","s":[[[32.79395,-117.24883],[32.79434,-117.24701]],[[32.79302,-117.25303],[32.79314,-117.25249]],[[32.79245,-117.25558],[32.79252,-117.2553]],[[32.79273,-117.25432],[32.79291,-117.25351]],[[32.79259,-117.25496],[32.79273,-117.25432]],[[32.79314,-117.25249],[32.79326,-117.25191]],[[32.79434,-117.24701],[32.79475,-117.24518]],[[32.79291,-117.25351],[32.79302,-117.25303]],[[32.79252,-117.2553],[32.79259,-117.25496]],[[32.79354,-117.25066],[32.79395,-117.24883]],[[32.79475,-117.24518],[32.79515,-117.24335]],[[32.79326,-117.25191],[32.79354,-117.25066]]]},"Oliver Ave":{"c":"minor","s":[[[32.79208,-117.25274],[32.7922,-117.2522]],[[32.79159,-117.25498],[32.79165,-117.25472]],[[32.7926,-117.25037],[32.79301,-117.24852]],[[32.7915,-117.25537],[32.79159,-117.25498]],[[32.79301,-117.24852],[32.79342,-117.24672]],[[32.79188,-117.25364],[32.79208,-117.25274]],[[32.79232,-117.25162],[32.7926,-117.25037]],[[32.79382,-117.24489],[32.79422,-117.24306]],[[32.7917,-117.25401],[32.79188,-117.25364]],[[32.7922,-117.2522],[32.79232,-117.25162]],[[32.79342,-117.24672],[32.79382,-117.24489]]]},"Felspar St":{"c":"minor","s":[[[32.79911,-117.24848],[32.79951,-117.24666]],[[32.79951,-117.24666],[32.79991,-117.24483]],[[32.79733,-117.25658],[32.7975,-117.25578]],[[32.79831,-117.25213],[32.79871,-117.25031]],[[32.79871,-117.25031],[32.79911,-117.24848]],[[32.7975,-117.25578],[32.7979,-117.25396]],[[32.79723,-117.25703],[32.79733,-117.25658]],[[32.7979,-117.25396],[32.79831,-117.25213]]]},"Emerald St":{"c":"minor","s":[[[32.80044,-117.24695],[32.80084,-117.24511]],[[32.80004,-117.24877],[32.80044,-117.24695]],[[32.79925,-117.25242],[32.79965,-117.25059]],[[32.79827,-117.25685],[32.79843,-117.25607]],[[32.79843,-117.25607],[32.79884,-117.25425]],[[32.79965,-117.25059],[32.80004,-117.24877]],[[32.79814,-117.25738],[32.79827,-117.25685]],[[32.79884,-117.25425],[32.79925,-117.25242]]]},"Missouri St":{"c":"minor","s":[[[32.80271,-117.24568],[32.80311,-117.24386]],[[32.80071,-117.25481],[32.80111,-117.25298]],[[32.8023,-117.24753],[32.80271,-117.24568]],[[32.80111,-117.25298],[32.80151,-117.25116]],[[32.80003,-117.25783],[32.8003,-117.25663]],[[32.8003,-117.25663],[32.80071,-117.25481]],[[32.8,-117.25797],[32.80003,-117.25783]],[[32.80151,-117.25116],[32.8019,-117.24934]],[[32.8019,-117.24934],[32.8023,-117.24753]],[[32.7999,-117.25841],[32.8,-117.25797]]]},"Wilbur Ave":{"c":"minor","s":[[[32.80653,-117.24516],[32.8059,-117.24472]],[[32.80563,-117.25049],[32.80603,-117.24865]],[[32.80643,-117.24683],[32.80666,-117.24574],[32.80653,-117.24516]],[[32.80603,-117.24865],[32.80643,-117.24683]],[[32.80482,-117.25413],[32.80522,-117.2523]],[[32.80522,-117.2523],[32.80563,-117.25049]],[[32.80403,-117.25779],[32.80443,-117.25595]],[[32.80377,-117.25903],[32.80403,-117.25779]],[[32.80443,-117.25595],[32.80482,-117.25413]]]}};
+const mapPt = (lat, lon) => mapXY(lat, lon).map(v => +v.toFixed(1));
+const polyD = segs => segs.map(sg => "M" + sg.map(([la, lo]) => mapPt(la, lo).join(",")).join(" L")).join(" ");
+const ROAD_STYLE = { major: { w: 7, c: "--road-major", cc: "--road-major-casing" }, main: { w: 6, c: "--road-major", cc: "--road-major-casing" }, minor: { w: 4, c: "--road", cc: "--road-casing" } };
+// Parking: Tourmaline lot from the visitor guides; the two paid lots are placed from their street addresses, so their pins are approximate.
+const PARKING = [
+  { name: "Tourmaline Surf Park lot", note: "Free, right at the beach, with restrooms and showers.", paid: false, lat: 32.80545, lon: -117.26150 },
+  { name: "Mission Blvd lot (816 Hornblend St)", note: "Paid, from about $10.", paid: true, lat: 32.79562, lon: -117.25450, approx: true },
+  { name: "Garnet Ave lot (870 Garnet Ave)", note: "Paid, rate not listed.", paid: true, lat: 32.79672, lon: -117.25400, approx: true },
+];
+let showParking = store.get("waive.parking") !== false;
+// find where a street crosses a given longitude (or latitude), with its on-screen angle, so a label can sit on it
+function crossAt(segs, key, val) {
+  for (const sg of segs) for (let i = 0; i < sg.length - 1; i++) {
+    const a = sg[i], b = sg[i + 1], k = key === "lon" ? 1 : 0;
+    if ((a[k] - val) * (b[k] - val) <= 0 && a[k] !== b[k]) {
+      const t = (val - a[k]) / (b[k] - a[k]), lat = a[0] + t * (b[0] - a[0]), lon = a[1] + t * (b[1] - a[1]);
+      const [x1, y1] = mapXY(a[0], a[1]), [x2, y2] = mapXY(b[0], b[1]);
+      let ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI; if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
+      return { x: mapXY(lat, lon)[0], y: mapXY(lat, lon)[1], ang };
+    }
+  }
+  return null;
+}
+let view = { x: 0, y: 0, w: MAP.W, h: MAP.H };
+function applyView() {
+  const svg = $("map"); svg.setAttribute("viewBox", `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`);
+  const px = 0.5 * MAP.S * (svg.clientWidth || MAP.W) / view.w; $("scaleBar").style.width = px.toFixed(0) + "px";
+}
+function zoomBy(f, cx, cy) {
+  const nw = clamp(view.w * f, 170, MAP.W), nh = nw * MAP.H / MAP.W;
+  cx = cx == null ? view.x + view.w / 2 : cx; cy = cy == null ? view.y + view.h / 2 : cy;
+  view.x = clamp(cx - (cx - view.x) * nw / view.w, 0, MAP.W - nw); view.y = clamp(cy - (cy - view.y) * nh / view.h, 0, MAP.H - nh);
+  view.w = nw; view.h = nh; applyView();
+}
+(function mapControls() {
+  const svg = $("map"); let drag = null;
+  $("zoomIn").onclick = () => zoomBy(0.7); $("zoomOut").onclick = () => zoomBy(1 / 0.7); $("zoomReset").onclick = () => { view = { x: 0, y: 0, w: MAP.W, h: MAP.H }; applyView(); };
+  svg.addEventListener("pointerdown", ev => { if (ev.target.closest(".pin")) return; drag = { x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y }; svg.setPointerCapture(ev.pointerId); svg.style.cursor = "grabbing"; });
+  svg.addEventListener("pointermove", ev => {
+    if (!drag) return; const k = view.w / svg.clientWidth;
+    view.x = clamp(drag.vx - (ev.clientX - drag.x) * k, 0, MAP.W - view.w); view.y = clamp(drag.vy - (ev.clientY - drag.y) * k, 0, MAP.H - view.h); applyView();
+  });
+  const end = () => { drag = null; svg.style.cursor = ""; }; svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
+  svg.addEventListener("wheel", ev => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(ev.deltaY < 0 ? 0.85 : 1 / 0.85, view.x + (ev.clientX - r.left) / r.width * view.w, view.y + (ev.clientY - r.top) / r.height * view.h); }, { passive: false });
+  window.addEventListener("resize", applyView);
+})();
+const arrowSvg = deg => `<svg viewBox="-10 -10 20 20" width="18" height="18" aria-hidden="true" style="transform:rotate(${deg}deg);flex:none"><path d="M0,8 V-7 M0,-8 L-5,-1 M0,-8 L5,-1" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function renderMap() {
   const h0 = HOURS_DATA[selected]; if (!h0) return;
   const svg = $("map"), coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1];
-  const land = `${coast} L${MAP.W},${bot[1]} L${MAP.W},${top[1]} Z`;
-  let g = `<rect width="${MAP.W}" height="${MAP.H}" fill="var(--water)"/>`;
+  const land = `${coast} L${MAP.W + 40},${bot[1]} L${MAP.W + 40},${top[1]} Z`;
+  let g = `<defs><linearGradient id="wg" x1="0" x2="1" y1="0" y2="0"><stop offset="0" style="stop-color:var(--water-deep)"/><stop offset="1" style="stop-color:var(--water)"/></linearGradient>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter></defs>`;
+  g += `<rect x="-60" y="-60" width="${MAP.W + 120}" height="${MAP.H + 120}" fill="url(#wg)"/>`;
+  [[16, 0.4], [36, 0.25], [62, 0.14]].forEach(([d, o]) => { g += `<path d="${coast}" transform="translate(${-d},0)" fill="none" stroke="var(--wave)" stroke-opacity="${o}" stroke-width="1.8" stroke-dasharray="12 9" stroke-linecap="round"/>`; });
   g += `<path d="${land}" fill="var(--land)"/>`;
-  g += `<path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="9" stroke-linecap="round"/>`;
-  // Ocean Blvd runs along the sand; Garnet Ave leads inland from Crystal Pier
-  g += `<path d="${coast}" transform="translate(58,0)" fill="none" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/>`;
-  const [cx, cy] = mapXY(32.7965, -117.2575);
-  g += `<path d="M${cx + 20},${cy} L${MAP.W},${cy}" stroke="var(--line)" stroke-width="4"/>`;
-  g += `<text class="geo land" x="${MAP.W - 14}" y="${cy - 8}" text-anchor="end">Garnet Ave</text>`;
-  g += `<text class="geo land" x="${cx + 96}" y="${cy - 110}">Pacific Beach</text>`;
-  g += `<text class="geo" x="26" y="${MAP.H - 24}">Pacific Ocean</text>`;
-  const [px0, py0] = mapXY(32.7965, SPOTS.crystal.lon), [px1] = mapXY(32.7965, -117.2573);
-  g += `<path d="M${px1 + 2},${py0} L${px0 - 6},${py0}" stroke="var(--ink-2)" stroke-width="6" stroke-linecap="butt"/>`;
-  // swell and wind arrows
-  if (h0.dir != null) { const sx = 90, sy = 86; g += arrowAt(sx, sy, h0.dir + 180, 54, "var(--sea)"); g += `<text class="sub" x="${sx - 56}" y="${sy + 76}">Swell ${degToCompass(h0.dir)}</text><text class="sub" x="${sx - 56}" y="${sy + 92}">${mToFt(h0.hs).toFixed(1)} ft @ ${h0.period ? h0.period.toFixed(0) : "–"} s</text>`; }
-  if (h0.windDir != null && h0.mph != null) { const wx = 505, wy = 400; g += arrowAt(wx, wy, h0.windDir + 180, 44, "var(--r2)"); g += `<text class="geo land" x="${wx - 40}" y="${wy + 62}">Wind ${degToCompass(h0.windDir)} ${Math.round(h0.mph)} mph</text>`; }
-  // north arrow and scale
-  g += `<g transform="translate(560,40)"><path d="M0,-18 L7,8 L0,3 L-7,8 Z" fill="var(--ink)"/><text class="geo" x="0" y="26" text-anchor="middle" style="letter-spacing:0">N</text></g>`;
-  const m500 = 0.5 * MAP.S;
-  g += `<g transform="translate(${MAP.W - 24 - m500},${MAP.H - 28})"><path d="M0,0 H${m500} M0,-5 V5 M${m500},-5 V5" stroke="var(--ink-2)" stroke-width="2"/><text class="geo" x="${m500 / 2}" y="-10" text-anchor="middle" style="letter-spacing:0">500 m</text></g>`;
+  g += `<path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="17" stroke-linecap="round"/>`;
+  g += `<path d="${coast}" transform="translate(-8,0)" fill="none" stroke="var(--wave)" stroke-opacity="0.75" stroke-width="2.2" stroke-linecap="round"/>`;
+  // roads: all casings first, then all fills, so crossings merge cleanly
+  const byClass = { minor: [], main: [], major: [] };
+  for (const r of Object.values(ROADS)) if (byClass[r.c]) byClass[r.c].push(...r.s);
+  for (const c of ["minor", "main", "major"]) g += `<path d="${polyD(byClass[c])}" fill="none" stroke="var(${ROAD_STYLE[c].cc})" stroke-width="${ROAD_STYLE[c].w + 2.6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  for (const c of ["minor", "main", "major"]) g += `<path d="${polyD(byClass[c])}" fill="none" stroke="var(${ROAD_STYLE[c].c})" stroke-width="${ROAD_STYLE[c].w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  g += `<path d="${polyD(ROADS["Ocean Front Walk"].s)}" fill="none" stroke="var(--boardwalk)" stroke-width="3.2" stroke-dasharray="1 5" stroke-linecap="round"/>`;
+  if (showParking) {
+    const metered = ROADS["Garnet Ave"].s.filter(sg => sg[0][1] > -117.2557);
+    g += `<path d="${polyD(metered)}" fill="none" stroke="var(--meter)" stroke-width="3.4" stroke-dasharray="1 6" stroke-linecap="round"><title>Metered parking, 2-hour limit (city pilot)</title></path>`;
+  }
+  // Crystal Pier (at the foot of Garnet Ave)
+  const [pbx, pby] = mapXY(32.7963, -117.25672), [pex] = mapXY(32.7963, -117.2584);
+  g += `<path d="M${pbx},${pby} L${pex},${pby - 1}" stroke="var(--ink-2)" stroke-width="6" stroke-linecap="butt"/><path d="M${pbx},${pby} L${pex},${pby - 1}" stroke="var(--land)" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+  // street names
+  const mw = Object.values(ROADS).length;
+  for (const [name, r] of Object.entries(ROADS)) {
+    if (r.c === "walk" || name === "Mission Blvd" || name === "La Jolla Blvd" || name === "Ocean Blvd") continue;
+    const lonW = Math.min(...r.s.flat().map(p => p[1]).filter((_, i) => i % 2 === 0 || true)), pt = crossAt(r.s, "lon", lonW + 0.0016); if (!pt) continue;
+    const major = r.c === "major";
+    g += `<text class="st${major ? " big" : ""}" transform="translate(${pt.x.toFixed(1)},${(pt.y - (major ? 6 : 5)).toFixed(1)}) rotate(${(pt.ang * 0.9).toFixed(1)})">${name.replace(" Ave", "").replace(" St", "").replace("Pacific Beach Dr", "Pacific Beach Dr")}</text>`;
+  }
+  const lab = (name, key, val, text, off) => { const pt = crossAt(ROADS[name].s, key, val); if (!pt) return ""; return `<text class="st road" text-anchor="middle" transform="translate(${pt.x.toFixed(1)},${pt.y.toFixed(1)}) rotate(${(key === "lat" ? pt.ang - 90 * Math.sign(pt.ang || 1) * 0 : pt.ang).toFixed(1)}) translate(0,${off})">${text}</text>`; };
+  g += lab("Mission Blvd", "lat", 32.7893, "Mission Blvd", -7).replace(/rotate\(([-\d.]+)\)/, (m, a) => `rotate(${(+a - 90).toFixed(1)})`);
+  g += lab("Ocean Blvd", "lat", 32.8024, "Ocean Blvd", -7).replace(/rotate\(([-\d.]+)\)/, (m, a) => `rotate(${(+a - 90).toFixed(1)})`);
+  g += lab("La Jolla Blvd", "lat", 32.8079, "La Jolla Blvd", -7).replace(/rotate\(([-\d.]+)\)/, (m, a) => `rotate(${(+a).toFixed(1)})`);
+  { const pt = crossAt(ROADS["Ocean Front Walk"].s, "lat", 32.7862); if (pt) g += `<text class="st road walk" text-anchor="middle" transform="translate(${(pt.x - 8).toFixed(1)},${pt.y.toFixed(1)}) rotate(${(pt.ang - 90).toFixed(1)})">Ocean Front Walk</text>`; }
+  g += `<text class="geo" x="26" y="${MAP.H - 70}">Pacific Ocean</text>`;
+  { const [x, y] = mapXY(32.7985, -117.2490); g += `<text class="geo land" x="${x}" y="${y}">Pacific Beach</text>`; }
+  // parking
+  if (showParking) for (const p of PARKING) {
+    const [x, y] = mapXY(p.lat, p.lon);
+    g += `<g class="pk"><title>${p.name}${p.approx ? " (approximate position)" : ""}: ${p.note}</title>
+      <rect x="${x - 11}" y="${y - 11}" width="22" height="22" rx="6" fill="${p.paid ? "var(--surface)" : "var(--park)"}" stroke="var(--park)" stroke-width="2.4" ${p.approx ? 'stroke-dasharray="4 3"' : ""} filter="url(#sh)"/>
+      <text x="${x}" y="${y + 5.5}" text-anchor="middle" class="pt" style="fill:${p.paid ? "var(--park)" : "#fff"}">P</text>${p.paid ? `<circle cx="${x + 10}" cy="${y - 10}" r="6.5" fill="var(--park)"/><text x="${x + 10}" y="${y - 6.2}" text-anchor="middle" class="pt s" style="fill:#fff">$</text>` : ""}</g>`;
+  }
   // lifeguard towers
   if (showTowers) for (const t of TOWERS) {
     const [x, y] = mapXY(t.lat, t.lon), w = t.perm ? 7 : 5.5;
-    g += `<g class="tower" aria-label="${t.label}, ${t.street}"><title>${t.label}, ${t.street}${t.perm ? " (staffed year-round)" : " (seasonal)"}</title>
+    g += `<g class="tower"><title>${t.label}, ${t.street}${t.perm ? " (staffed year-round)" : " (seasonal)"}</title>
       <path d="M${x - w},${y + w} V${y - 1} L${x},${y - w - 3} L${x + w},${y - 1} V${y + w} Z" fill="${t.perm ? "var(--sea)" : "var(--surface)"}" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/>
-      <text class="tw" x="${x + w + 5}" y="${y + 4}">${t.id}</text></g>`;
+      <text class="tw" x="${x - w - 4}" y="${y + 4}" text-anchor="end">${t.id}</text></g>`;
   }
-  // pins
+  // break pins with name pills
   for (const [k, sp] of Object.entries(SPOTS)) {
     const r = spotNow(k), rc = ratingClass(r.rating), [x, y] = mapXY(sp.lat, sp.lon), sel = k === spotKey;
+    const tw = Math.max(sp.name.length * 8.4, 64) + 20, surf = `${Math.max(0, r.face - 0.5).toFixed(0)}–${Math.ceil(r.face + 0.5)} ft`;
     g += `<g class="pin" tabindex="0" role="button" data-k="${k}" aria-label="${sp.name}, rated ${r.rating.toFixed(1)} out of 10, ${rc.label}" aria-pressed="${sel}">
       <title>${sp.name}: ${r.rating.toFixed(1)}/10 ${rc.label}</title>
+      <rect x="${x - 30 - tw}" y="${y - 20}" width="${tw}" height="40" rx="10" fill="var(--surface)" fill-opacity="0.95" stroke="${sel ? "var(--ink)" : "var(--line)"}" stroke-width="${sel ? 2.2 : 1}" filter="url(#sh)"/>
+      <text class="nm${sel ? " sel" : ""}" x="${x - 40}" y="${y - 3}" text-anchor="end">${sp.name}</text>
+      <text class="sub" x="${x - 40}" y="${y + 13}" text-anchor="end">${surf}</text>
       <circle class="hit" cx="${x}" cy="${y}" r="26" fill="transparent"/>
-      ${sel ? `<circle cx="${x}" cy="${y}" r="26" fill="none" stroke="var(--ink)" stroke-width="3"/>` : ""}
-      <circle class="dot" cx="${x}" cy="${y}" r="20" fill="var(--${rc.c.slice(2)})" stroke="var(--surface)" stroke-width="3"/>
+      ${sel ? `<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="var(--ink)" stroke-width="3"/>` : ""}
+      <circle class="dot" cx="${x}" cy="${y}" r="21" fill="var(${rc.c})" stroke="var(--surface)" stroke-width="3" filter="url(#sh)"/>
       <text class="rt" x="${x}" y="${y + 5}">${r.rating.toFixed(1)}</text>
-      <text class="nm${sel ? " sel" : ""}" x="${x - 34}" y="${y - 2}" text-anchor="end">${sp.name}</text>
-      <text class="sub" x="${x - 34}" y="${y + 14}" text-anchor="end">${Math.max(0, r.face - 0.5).toFixed(0)}–${Math.ceil(r.face + 0.5)} ft</text>
     </g>`;
   }
   svg.innerHTML = g;
@@ -1076,9 +1179,14 @@ function renderMap() {
     pin.onclick = () => switchSpot(pin.dataset.k);
     pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } };
   });
+  // conditions chips over the map
+  $("mapChips").innerHTML = (h0.dir != null ? `<span class="mchip" style="color:var(--sea)">${arrowSvg(h0.dir + 180)}<span>Swell ${degToCompass(h0.dir)} ${mToFt(h0.hs).toFixed(1)} ft @ ${h0.period ? h0.period.toFixed(0) : "–"} s</span></span>` : "")
+    + (h0.windDir != null && h0.mph != null ? `<span class="mchip" style="color:var(--r2)">${arrowSvg(h0.windDir + 180)}<span>Wind ${degToCompass(h0.windDir)} ${Math.round(h0.mph)} mph</span></span>` : "");
   $("mapSub").textContent = `Ratings for ${fmtDay.format(new Date(h0.t))}, ${hourLabel(h0.t)}, on a ${BOARDS[boardKey].label.toLowerCase()}. Tap a break to see its conditions. Pick another hour in the 3 Day Forecast and the map updates.`;
   // detail card for the selected break
   const h = SCORED[selected], rc = ratingClass(h.rating), sp = SPOT, nh = nextHilo(h.t);
+  const near = list => list.map(x => ({ x, d: distM(sp.lat, sp.lon, x.lat, x.lon) })).sort((a, b) => a.d - b.d);
+  const dm = d => `${Math.round(d / 10) * 10} m`;
   $("mapCard").innerHTML = `<span class="eyebrow">Selected break</span><h3>${sp.name}</h3>
     <div class="rate"><b class="num">${h.rating.toFixed(1)}</b><span style="background:var(${rc.c})">${rc.label}</span></div>
     <dl><dt>Surf</dt><dd class="num">${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)} ft (${bodyScale(h.face).toLowerCase()})</dd>
@@ -1087,12 +1195,19 @@ function renderMap() {
       <dt>Tide</dt><dd class="num">${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}${nh ? `, ${nh.type === "H" ? "high" : "low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""}</dd></dl>
     <hr><p class="about">${sp.blurb}</p>
     <dl><dt>Type</dt><dd>${sp.type}</dd><dt>Best swell</dt><dd>${sp.bestSwell}</dd><dt>Best wind</dt><dd>${sp.bestWind}</dd><dt>Best tide</dt><dd>${sp.bestTide}</dd><dt>Reliability</dt><dd>${sp.reliability}</dd></dl>
-    <hr><p class="about"><b>Nearest lifeguard towers.</b> ${TOWERS.map(t => ({ t, d: distM(sp.lat, sp.lon, t.lat, t.lon) })).sort((a, b) => a.d - b.d).slice(0, 2).map(({ t, d }) => `${t.label} (${t.street}), about ${Math.round(d / 10) * 10} m ${t.lat > sp.lat ? "north" : "south"} and ${t.lon > sp.lon ? "inland" : "seaward"}`).join("; ")}. Towers sit on the sand, so the break is out in the water from them.</p>
+    <hr><p class="about"><b>Nearest lifeguard towers.</b> ${near(TOWERS).slice(0, 2).map(({ x: t, d }) => `${t.label} (${t.street}), about ${dm(d)} ${t.lat > sp.lat ? "north" : "south"} and ${t.lon > sp.lon ? "inland" : "seaward"}`).join("; ")}. Towers sit on the sand, so the break is out in the water from them.</p>
+    <p class="about"><b>Parking.</b> ${near(PARKING).slice(0, 2).map(({ x: p, d }) => `${p.name}, about ${dm(d)} away. ${p.note}${p.approx ? " Pin is approximate." : ""}`).join(" ")}</p>
+    <details class="ptips"><summary>Parking tips and rules</summary>
+      <ul><li>Free street parking near the beach fills early on sunny weekends. The <a href="https://www.sandiego.org/things-to-do/beaches/pacific-beach" target="_blank" rel="noopener">visitor guide</a> suggests the Tourmaline St lot and the side streets north of the pier, and says there are pockets of parking near Grand Ave and Pacific Beach Dr.</li>
+      <li>Garnet Ave between Mission Blvd and Fanuel St, plus parts of Cass, Bayard and Hornblend, got meters in a city pilot that began in November 2023: 10 am to 8 pm, $1.25 an hour, 2-hour limit, free on Sundays <a href="https://digital-release.fox5sandiego.com/news/local-news/pacific-beach-parking-meters-now-active/amp/" target="_blank" rel="noopener">(Fox 5)</a>. Rules can change, so read the posted signs.</li>
+      <li>Parking a few blocks inland and walking is usually easier than circling near Crystal Pier, Grand Ave and Mission Blvd <a href="https://parkmobile.io/parking/locations/ca/san-diego-parking/neighbourhood/pacific-beach" target="_blank" rel="noopener">(Parkmobile)</a>.</li></ul></details>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
   $("toRating").onclick = () => $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 $("towerToggle").checked = showTowers;
 $("towerToggle").onchange = () => { showTowers = $("towerToggle").checked; store.set("waive.towers", showTowers); renderMap(); };
+$("parkToggle").checked = showParking;
+$("parkToggle").onchange = () => { showParking = $("parkToggle").checked; store.set("waive.parking", showParking); renderMap(); };
 function renderSpot() {
   $("spots").innerHTML = Object.entries(SPOTS).map(([k, sp]) => `<button type="button" data-k="${k}" aria-pressed="${k === spotKey}">${sp.name}</button>`).join("");
   $("spots").querySelectorAll("button").forEach(btn => btn.onclick = () => switchSpot(btn.dataset.k));
