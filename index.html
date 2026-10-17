@@ -21,7 +21,7 @@
   --sea-soft: #b9dce3;
   --sand: #d9b779;
   --night: rgba(15, 42, 51, 0.07);
-  --r1: #8a9ba1;
+  --r1: #e05252;
   --r2: #c9a24a;
   --r3: #e2b93b;
   --r4: #2f9e74;
@@ -34,14 +34,14 @@
   :root:not([data-theme="light"]) {
     --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
     --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
-    --r1: #6d8088; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
+    --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
   --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
-  --r1: #6d8088; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
+  --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -65,8 +65,11 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .brand .logo { font: 700 1.1rem var(--font-display); color: var(--sea); letter-spacing: -0.01em; }
 .brand h1 { font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -0.02em; line-height: 1; }
+.spots { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.spots button { font: 600 0.85rem var(--font-body); padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.spots button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 500 0.78rem var(--font-data); border: 1px solid var(--line); background: var(--surface); }
-.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--r1); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); }
 .chip.live .dot { background: var(--r4); }
 .chip.mixed .dot { background: var(--r3); }
 .banner { border-left: 4px solid var(--r3); background: var(--surface); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 0.92rem; }
@@ -161,9 +164,10 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
   <header class="top">
     <div class="brand">
       <span class="logo">waive</span>
-      <h1>Tourmaline</h1>
-      <span class="muted">Pacific Beach, San Diego</span>
+      <h1 id="spotName">Tourmaline</h1>
+      <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
     </div>
+    <div class="spots" id="spots" role="group" aria-label="Choose a break"></div>
     <span id="modeChip" class="chip"><span class="dot"></span><span id="modeText">Loading forecast…</span></span>
   </header>
 
@@ -233,8 +237,8 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
       </div>
       <div class="panel">
         <span class="eyebrow">Swell window</span>
-        <svg id="compass" viewBox="0 0 240 240" role="img" aria-label="Swell and wind direction compared with the directions Tourmaline is open to"></svg>
-        <p class="muted" style="margin:6px 0 0;font-size:.84rem">The shaded arc is the swell directions that reach Tourmaline. La Jolla blocks some northwest swell and Point Loma blocks some south swell.</p>
+        <svg id="compass" viewBox="0 0 240 240" role="img" aria-label="Swell and wind direction compared with the directions this break is open to"></svg>
+        <p class="muted" style="margin:6px 0 0;font-size:.84rem" id="spotBlurb"></p>
       </div>
     </div>
   </section>
@@ -252,8 +256,8 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
   <section aria-label="How the rating works">
     <h2>How the rating works</h2>
     <div class="prose">
-      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (Tourmaline's reef and rocks like mid to high tide), and <b>direction</b> (how open Tourmaline is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
-      <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open Tourmaline is to that swell). When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
+      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
+      <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
       <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
     </div>
   </section>
@@ -264,7 +268,33 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
 <script>
 "use strict";
 const TZ = "America/Los_Angeles";
-const SPOT = { name: "Tourmaline", lat: 32.8052, lon: -117.2626, facing: 250, tideStation: "9410230", buoy: "46225" };
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+// Each break: where it is, which way it faces, which swell directions reach it, and how it reacts to size and tide.
+// exposure rows are [from°, to°, share of swell that reaches the break]; anything outside gets 0.1.
+const SPOTS = {
+  tourmaline: {
+    name: "Tourmaline", area: "Pacific Beach, San Diego", lat: 32.8052, lon: -117.2626, facing: 250,
+    exposure: [[205, 280, 1], [190, 205, 0.8], [280, 295, 0.8], [175, 190, 0.55], [295, 310, 0.55], [160, 175, 0.3], [310, 320, 0.3]],
+    sizeFactor: 1, tideShift: 0,
+    blurb: "A slow, rolling reef and cobblestone break. La Jolla blocks some northwest swell and Point Loma blocks some south swell.",
+    tideNote: "Tourmaline's reef and rocks like mid to high tide.",
+  },
+  pbdrive: {
+    name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7893, lon: -117.2553, facing: 255,
+    exposure: [[200, 295, 1], [185, 200, 0.8], [295, 310, 0.8], [170, 185, 0.55], [310, 320, 0.55], [160, 170, 0.3], [320, 330, 0.3]],
+    sizeFactor: 1.1, tideShift: -1,
+    blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell.",
+    tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide and get soft and close out at high tide.",
+  },
+};
+let spotKey = (location.hash || "").slice(1);
+if (!SPOTS[spotKey]) spotKey = store.get("waive.spot") || "tourmaline";
+if (!SPOTS[spotKey]) spotKey = "tourmaline";
+let SPOT = Object.assign({ tideStation: "9410230", buoy: "46225" }, SPOTS[spotKey]);
 const HOURS = 72;
 const HOUR = 3600e3;
 
@@ -276,11 +306,7 @@ const BOARDS = {
   wavestorm:  { label: "Wavestorm",  len: [8, 8], lenText: "8′0″", nose: "round", width: 1.9, about: "The classic 8′ soft-top foam board. Soft so it won't hurt if it hits you, very stable, and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
   longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board at Tourmaline.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
 };
-const store = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
-  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
-};
+
 let boardKey = store.get("waive.board") || "longboard";
 if (boardKey === "foamie") { boardKey = "wavestorm"; const t = store.get("waive.tune.foamie"); if (t) store.set("waive.tune.wavestorm", t); }
 if (!BOARDS[boardKey]) boardKey = "longboard";
@@ -358,7 +384,7 @@ function expandNWS(values, map, key) {
 }
 
 async function loadMarine() {
-  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=32.80&longitude=-117.28&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&timeformat=unixtime&timezone=GMT&forecast_days=4`;
+  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${(SPOT.lat - 0.005).toFixed(3)}&longitude=${(SPOT.lon - 0.02).toFixed(3)}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&timeformat=unixtime&timezone=GMT&forecast_days=4`;
   const j = await getJSON(u); const h = j.hourly, out = {};
   h.time.forEach((t, i) => { out[t * 1000] = { wave: h.wave_height[i], swell: h.swell_wave_height[i], period: h.swell_wave_period[i], dir: h.swell_wave_direction[i], windWave: h.wind_wave_height[i] }; });
   return out;
@@ -444,14 +470,11 @@ function sampleData(startMs) {
 /* ---------- model ---------- */
 function exposure(d) {
   if (d == null) return 0.7;
-  if (d >= 205 && d <= 280) return 1;
-  if ((d >= 190 && d < 205) || (d > 280 && d <= 295)) return 0.8;
-  if ((d >= 175 && d < 190) || (d > 295 && d <= 310)) return 0.55;
-  if ((d >= 160 && d < 175) || (d > 310 && d <= 320)) return 0.3;
+  for (const [a, b, v] of SPOT.exposure) if (d >= a && d <= b) return v;
   return 0.1;
 }
 const periodFactor = T => clamp(0.75 + 0.035 * (T || 10), 0.9, 1.35);
-function faceFt(hsM, T, dir) { return mToFt(hsM) * periodFactor(T) * exposure(dir); }
+function faceFt(hsM, T, dir) { return mToFt(hsM) * periodFactor(T) * exposure(dir) * SPOT.sizeFactor; }
 function bodyScale(ft) {
   if (ft < 1) return "Ankle to knee"; if (ft < 2) return "Knee to thigh"; if (ft < 3) return "Thigh to waist";
   if (ft < 4.5) return "Waist to chest"; if (ft < 6) return "Chest to head"; if (ft < 8) return "Overhead"; return "Well overhead";
@@ -506,6 +529,7 @@ function ratingClass(r) {
 let HOURS_DATA = [], HILO = [], BUOY = null, CAL = 1, selected = 0, startMs = 0, liveCount = 0;
 
 async function loadAll() {
+  liveCount = 0; CAL = 1; BUOY = null;
   startMs = Math.floor(Date.now() / HOUR) * HOUR;
   const sample = sampleData(startMs);
   const [m, nws, w, t, b] = await Promise.allSettled([loadMarine(), loadNWS(), loadWind(), loadTide(startMs), loadBuoy()]);
@@ -548,7 +572,7 @@ async function loadAll() {
   if (!live) {
     chip.className = "chip"; txt.textContent = "Sample conditions";
     ban.hidden = false;
-    ban.textContent = "This preview can't reach outside websites, so it is showing sample conditions shaped like a real October day at Tourmaline. The live site at jakefeehan.github.io/waive pulls live NOAA and NWS data.";
+    ban.textContent = "This preview can't reach outside websites, so it is showing sample conditions shaped like a real October day in Pacific Beach. The live site at jakefeehan.github.io/waive pulls live NOAA and NWS data.";
   } else if (usedSample.size) {
     chip.className = "chip mixed"; txt.textContent = "Live, partly sample";
     ban.hidden = false; ban.textContent = "Some sources didn't load, so these parts use sample values: " + [...usedSample].join(", ") + ". See the table at the bottom.";
@@ -563,7 +587,8 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 let SCORED = [];
 
-function rescore() { const P = profile(); SCORED = HOURS_DATA.map(h => Object.assign({}, h, scoreHour(h, P))); }
+function spotProfile() { const P = profile(); return Object.assign({}, P, { tide: P.tide.map(v => v + SPOT.tideShift) }); }
+function rescore() { const P = spotProfile(); SCORED = HOURS_DATA.map(h => Object.assign({}, h, scoreHour(h, P))); }
 
 function renderBoards() {
   $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText + " long"}</small></button>`).join("");
@@ -613,12 +638,12 @@ function renderNow() {
     ["Buoy now", BUOY ? `${mToFt(BUOY.hs).toFixed(1)} ft @ ${BUOY.dpd} s` : "–", BUOY ? (BUOY.sample ? "Sample (Oct 16 reading)" : `${degToCompass(BUOY.mwd)} · ${fmtTime.format(new Date(BUOY.t))}`) : ""],
   ];
   $("facts").innerHTML = facts.map(([k, v, s]) => `<div class="fact"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`).join("");
-  const P = profile();
+  const P = spotProfile();
   const why = {
     size: h.sc.size >= 0.97 ? `${h.face.toFixed(1)} ft is right in this board's sweet spot` : h.face >= P.size[0] && h.face <= P.size[1] ? `${h.face.toFixed(1)} ft is in your ${P.size[0]}–${P.size[1]} ft range, best around ${(P.size[0] + 0.6 * (P.size[1] - P.size[0])).toFixed(1)} ft` : h.face < P.size[0] ? `${h.face.toFixed(1)} ft is smaller than your ${P.size[0]} ft minimum` : `${h.face.toFixed(1)} ft is bigger than your ${P.size[1]} ft maximum`,
     wind: windKind(h.mph, h.windDir) + (h.mph != null ? ` at ${Math.round(h.mph)} mph` : ""),
     period: `${h.period ? h.period.toFixed(0) : "?"} s period; perfect is ${P.period + 4} s or more for this board`,
-    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${Math.round(exposure(h.dir) * 100)}% open to Tourmaline`,
+    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${Math.round(exposure(h.dir) * 100)}% open to ${SPOT.name}`,
     tide: h.tide == null ? "No tide data" : h.tide < P.tide[0] ? `Low for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : `In your ${P.tide[0]}–${P.tide[1]} ft range, best near ${((P.tide[0] + P.tide[1]) / 2).toFixed(1)} ft`,
   };
   $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
@@ -744,7 +769,7 @@ function renderCompass() {
   const pt = (deg, r) => [c + r * Math.sin(deg * rad), c - r * Math.cos(deg * rad)];
   const arc = (a0, a1, op) => { const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R); return `<path d="M${c},${c} L${x0},${y0} A${R},${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1},${y1} Z" fill="var(--sea)" fill-opacity="${op}"/>`; };
   let s = `<circle cx="${c}" cy="${c}" r="${R}" fill="var(--surface-2)" stroke="var(--line)"/>`;
-  s += arc(160, 175, 0.12) + arc(175, 190, 0.25) + arc(190, 205, 0.4) + arc(205, 280, 0.6) + arc(280, 295, 0.4) + arc(295, 310, 0.25) + arc(310, 320, 0.12);
+  for (const [a, b, v] of SPOT.exposure) s += arc(a, b, 0.6 * v * v);
   [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, d]) => { const [x, y] = pt(d, R + 12); s += `<text x="${x - 4}" y="${y + 4}">${l}</text>`; });
   // beach line (facing ~250°)
   const [bx0, by0] = pt(SPOT.facing - 90, 30), [bx1, by1] = pt(SPOT.facing + 90, 30);
@@ -898,6 +923,22 @@ function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); ren
 function refresh() { rescore(); renderNow(); renderDays(); renderTimeline(); renderCompass(); buildSeq(); }
 
 renderBoards(); renderTune();
+function renderSpot() {
+  $("spots").innerHTML = Object.entries(SPOTS).map(([k, sp]) => `<button type="button" data-k="${k}" aria-pressed="${k === spotKey}">${sp.name}</button>`).join("");
+  $("spots").querySelectorAll("button").forEach(btn => btn.onclick = () => switchSpot(btn.dataset.k));
+  $("spotName").textContent = SPOT.name; $("spotArea").textContent = SPOT.area;
+  $("spotBlurb").textContent = "The shaded arc is the swell directions that reach " + SPOT.name + ". " + SPOT.blurb;
+  $("tideNote").textContent = SPOT.tideNote;
+}
+async function switchSpot(k) {
+  if (k === spotKey || !SPOTS[k]) return;
+  spotKey = k; SPOT = Object.assign({ tideStation: "9410230", buoy: "46225" }, SPOTS[k]);
+  store.set("waive.spot", k);
+  try { history.replaceState(null, "", "#" + k); } catch (e) {}
+  renderSpot(); $("modeText").textContent = "Loading forecast…";
+  await loadAll(); selected = 0; refresh(); renderSources();
+}
+renderSpot();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
   refresh(); renderSources(); requestAnimationFrame(loop);
