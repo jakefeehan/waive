@@ -125,6 +125,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .banner { border-left: 4px solid var(--r3); background: var(--surface); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 0.92rem; }
 
 /* board picker */
+.skillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 0.9rem; }
+.boards.skills button { padding: 6px 14px; }
 .boards { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .boards button {
   font: 600 0.92rem var(--font-body); padding: 8px 14px; border-radius: 8px; cursor: pointer;
@@ -235,6 +237,7 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
   <section aria-label="Board">
     <div class="boards" id="boards" role="group" aria-label="Choose your board"></div>
     <p class="board-about" id="boardAbout"></p>
+    <div class="skillrow"><span class="eyebrow">Your skill level</span><div class="boards skills" id="skills" role="group" aria-label="Choose your skill level"></div><span class="muted" id="skillAbout"></span></div>
     <details class="tune">
       <summary>Tune settings for this board</summary>
       <div class="tune-grid" id="tune"></div>
@@ -425,10 +428,25 @@ const BOARDS = {
 let boardKey = store.get("waive.board") || "longboard";
 if (boardKey === "foamie") { boardKey = "wavestorm"; const t = store.get("waive.tune.foamie"); if (t) store.set("waive.tune.wavestorm", t); }
 if (!BOARDS[boardKey]) boardKey = "longboard";
-function profile() {
+function profileBase() {
   const base = BOARDS[boardKey];
   const saved = store.get("waive.tune." + boardKey) || {};
   return Object.assign({}, base, saved);
+}
+/* Skill level: beginners want small, clean, gentle days; advanced surfers want bigger, more powerful ones. Intermediate is the board's own settings. */
+const SKILLS = {
+  beginner: { label: "Beginner", about: "Small, clean and gentle days rate highest. Big or powerful surf, and wind chop, rate lower.", size: [0.75, 0.8], ok: [0.7, 0.7], wind: 0.8, period: 0.5, power: 2.5 },
+  intermediate: { label: "Intermediate", about: "The board's usual settings.", size: [1, 1], ok: [1, 1], wind: 1, period: 1, power: 0 },
+  advanced: { label: "Advanced", about: "Bigger, longer-period, more powerful days rate highest. Light chop matters less.", size: [1.3, 1.4], ok: [1.2, 1.35], wind: 1.2, period: 1.6, power: 0, periodShift: 1 },
+};
+let skillKey = store.get("waive.skill"); if (!SKILLS[skillKey]) skillKey = "intermediate";
+function profile() {
+  const P = profileBase(), k = SKILLS[skillKey];
+  return Object.assign({}, P, {
+    size: [P.size[0] * k.size[0], P.size[1] * k.size[1]], ok: [P.ok[0] * k.ok[0], P.ok[1] * k.ok[1]],
+    wind: P.wind * k.wind, period: P.period + (k.periodShift || 0), power: k.power,
+    w: Object.assign({}, P.w, { period: P.w.period * k.period }),
+  });
 }
 
 /* ---------- helpers ---------- */
@@ -628,7 +646,9 @@ function scoreHour(h, P) {
   }
   const direction = 0.6 + 0.4 * exposure(h.dir);
   const w = P.w;
-  const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide * (SPOT.tideWeight || 1)) * Math.pow(direction, 0.5);
+  // wave power (height x period) beyond what a beginner wants counts against the day
+  const power = P.power ? clamp(1 - 0.09 * Math.max(0, f * ((h.period || 8) / 10) - P.power), 0.35, 1) : 1;
+  const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide * (SPOT.tideWeight || 1)) * Math.pow(direction, 0.5) * power;
   const rating = 10 * Math.pow(p, 2);
   return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide, direction } };
 }
@@ -710,11 +730,14 @@ function spotNow(key) { return atSpot(key, () => derive(HOURS_DATA[selected], sp
 
 function renderBoards() {
   $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText + " long"}</small></button>`).join("");
+  $("skills").innerHTML = Object.entries(SKILLS).map(([k, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === skillKey}">${v.label}</button>`).join("");
+  $("skills").querySelectorAll("button").forEach(btn => btn.onclick = () => { skillKey = btn.dataset.k; store.set("waive.skill", skillKey); renderBoards(); refresh(); });
+  $("skillAbout").textContent = SKILLS[skillKey].about;
   const B = BOARDS[boardKey]; $("boardAbout").innerHTML = `<b>${B.label}, ${B.len[0] === B.len[1] ? B.lenText : "usually " + B.lenText} long.</b> ${B.about}`;
   $("boards").querySelectorAll("button").forEach(btn => btn.onclick = () => { boardKey = btn.dataset.k; store.set("waive.board", boardKey); renderBoards(); renderTune(); refresh(); });
 }
 function renderTune() {
-  const P = profile();
+  const P = profileBase();
   const fields = [
     ["sizeMin", "Smallest fun wave (ft)", P.size[0], 0.5, 8, 0.5], ["sizeMax", "Biggest fun wave (ft)", P.size[1], 1, 12, 0.5],
     ["wind", "Onshore wind you'll put up with (mph)", P.wind, 3, 20, 1],
@@ -743,7 +766,7 @@ function renderNow() {
   const rc = ratingClass(h.rating);
   $("whenEyebrow").textContent = selected === 0 ? "Right now" : "Selected hour";
   $("scoreBig").innerHTML = h.rating.toFixed(1) + "<small>/10</small>";
-  const lab = $("scoreLabel"); lab.textContent = rc.label + " for a " + BOARDS[boardKey].label.toLowerCase(); lab.style.background = css(rc.c);
+  const lab = $("scoreLabel"); lab.textContent = rc.label + " for a " + BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey); lab.style.background = css(rc.c);
   $("scoreWhen").textContent = fmtDay.format(new Date(h.t)) + ", " + hourLabel(h.t);
   const nh = nextHilo(h.t);
   const water = BUOY && BUOY.wtmpC != null ? Math.round(BUOY.wtmpC * 9 / 5 + 32) + "°F" : "–";
