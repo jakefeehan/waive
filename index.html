@@ -103,14 +103,14 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .maplegend span { display: inline-flex; align-items: center; gap: 6px; }
 .ptips { margin: 0 0 12px; font-size: 0.86rem; } .ptips summary { cursor: pointer; color: var(--sea); font-weight: 600; } .ptips ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); } .ptips a { color: var(--sea); }
 #map { display: block; width: 100%; height: auto; background: var(--water); }
-#map text { font-family: var(--font-body); }
-#map .pin { cursor: pointer; outline: none; }
+#map text, #miniMap text { font-family: var(--font-body); }
+#map .pin, #miniMap .pin { cursor: pointer; outline: none; }
 #map .pin:focus-visible circle.hit { stroke: var(--ink); stroke-width: 3; }
 #map .pin circle.dot { transition: r .12s; }
-#map .rt { font: 700 14px var(--font-data); fill: #0f2a33; paint-order: stroke; stroke: rgba(255, 255, 255, 0.8); stroke-width: 3px; stroke-linejoin: round; text-anchor: middle; }
-#map .nm { font: 600 15px var(--font-body); fill: var(--ink); }
-#map .nm.sel { font-weight: 700; }
-#map .sub { font: 500 12px var(--font-data); fill: var(--ink-2); }
+#map .rt, #miniMap .rt { font: 700 14px var(--font-data); fill: #0f2a33; paint-order: stroke; stroke: rgba(255, 255, 255, 0.8); stroke-width: 3px; stroke-linejoin: round; text-anchor: middle; }
+#map .nm, #miniMap .nm { font: 600 15px var(--font-body); fill: var(--ink); }
+#map .nm.sel, #miniMap .nm.sel { font-weight: 700; }
+#map .sub, #miniMap .sub { font: 500 12px var(--font-data); fill: var(--ink-2); }
 #map .st { font: 600 10.5px var(--font-body); fill: var(--ink-2); paint-order: stroke; stroke: var(--land); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
 #map .st.big { font-size: 12px; fill: var(--ink); }
 #map .st.road { font: 600 11px var(--font-body); letter-spacing: 0.04em; fill: var(--land-ink); stroke: var(--road); stroke-width: 0; }
@@ -230,40 +230,275 @@ th { font: 500 0.72rem var(--font-data); text-transform: uppercase; letter-spaci
 footer { font-size: 0.82rem; color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+<style id="redesign">
+/* ===== Redesign: calm, spacious, bold type; tabs; phone first ===== */
+:root {
+  --bg: #fafcfc; --surface: #ffffff; --surface-2: #f1f5f6; --ink: #0b2530; --ink-2: #566f78; --line: #e4ebed;
+  --sea: #0b6f86; --sand: #e0b866; --navy: #0f2a33;
+  --shadow: 0 1px 2px rgba(11, 37, 48, 0.04), 0 10px 32px rgba(11, 37, 48, 0.07);
+  --radius: 22px; --tabh: 68px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #08151b; --surface: #0f232b; --surface-2: #16303a; --ink: #eaf3f5; --ink-2: #94adb5; --line: #1d3943; --sea: #4fc0d8; --sand: #e0b866; --shadow: 0 0 0 1px rgba(255, 255, 255, 0.05); } }
+:root[data-theme="dark"] { --bg: #08151b; --surface: #0f232b; --surface-2: #16303a; --ink: #eaf3f5; --ink-2: #94adb5; --line: #1d3943; --sea: #4fc0d8; --sand: #e0b866; --shadow: 0 0 0 1px rgba(255, 255, 255, 0.05); }
+body { font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1040px; gap: 22px; padding-block: 18px calc(var(--tabh) + 48px + env(safe-area-inset-bottom, 0px)); }
+main { display: block; }
+.tabpanel { display: grid; gap: clamp(30px, 6vw, 44px); animation: rise .32s ease both; }
+.tabpanel[hidden] { display: none; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+h2 { font-size: clamp(1.45rem, 3.6vw, 1.9rem); letter-spacing: -0.02em; line-height: 1.1; }
+.sechead { display: grid; gap: 6px; }
+.sechead p { margin: 0; max-width: 62ch; }
+.sechead:has(.linkbtn) { grid-template-columns: 1fr auto; align-items: end; }
+.panel { border: none; border-radius: var(--radius); box-shadow: var(--shadow); padding: clamp(16px, 3vw, 26px); }
+section { gap: 16px; }
+.eyebrow { font-size: 0.7rem; letter-spacing: 0.1em; }
+.linkbtn { font-size: 0.95rem; }
+
+/* header */
+header.top { display: grid; gap: 14px; }
+.toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand .logo img, .toprow .logo img { height: 48px; width: auto; display: block; }
+.toprow .logo { display: inline-flex; }
+.chip { border: none; background: var(--surface-2); font-size: 0.74rem; }
+.spots, .pickers .boards { display: flex; gap: 8px; flex-wrap: wrap; }
+.spots button { font-weight: 600; font-size: 0.92rem; padding: 9px 16px; border-radius: 999px; border: none; background: var(--surface-2); color: var(--ink); transition: background .2s, color .2s, transform .15s; }
+.spots button:active { transform: scale(.97); }
+.spots button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .spots button[aria-pressed="true"] { background: var(--sea); color: #06222b; } }
+:root[data-theme="dark"] .spots button[aria-pressed="true"] { background: var(--sea); color: #06222b; }
+.pickers { display: grid; gap: 10px; }
+.boards button { border: none; background: var(--surface-2); border-radius: 14px; padding: 9px 14px; transition: background .2s, color .2s; }
+.boards button[aria-pressed="true"] { background: var(--sea); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boards button[aria-pressed="true"] { color: #06222b; } }
+:root[data-theme="dark"] .boards button[aria-pressed="true"] { color: #06222b; }
+.skillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
+.boards.skills button { padding: 7px 14px; border-radius: 999px; font-size: 0.88rem; }
+.fine { font: 600 0.88rem var(--font-body); color: var(--sea); background: none; border: 1.5px solid var(--sea); border-radius: 999px; padding: 6px 14px; cursor: pointer; margin-left: auto; }
+.fine:hover { background: var(--sea); color: #fff; }
+@media (max-width: 700px) {
+  .spots, .pickers .boards { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .spots::-webkit-scrollbar, .pickers .boards::-webkit-scrollbar { display: none; }
+  .spots button, .pickers .boards button { flex: none; }
+  .skillrow .boards.skills { flex-wrap: nowrap; overflow: visible; margin: 0; padding: 0; }
+}
+
+/* tab bar: bottom on phones, floating under the header on computers */
+.tabs { display: flex; justify-content: center; gap: 4px; }
+.tabs button { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-height: 48px; padding: 8px 4px; border: none; background: none; color: var(--ink-2); font: 600 0.72rem var(--font-body); cursor: pointer; border-radius: 14px; transition: color .2s, background .2s; }
+.tabs button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabs button[aria-selected="true"] { color: var(--sea); }
+@media (max-width: 760px) {
+  .tabs { position: fixed; inset: auto 0 0 0; z-index: 20; height: calc(var(--tabh) + env(safe-area-inset-bottom, 0px)); padding: 6px 8px env(safe-area-inset-bottom, 0px); background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid var(--line); }
+}
+@media (min-width: 761px) {
+  .tabs { position: sticky; top: 8px; z-index: 20; width: max-content; margin: 0 auto; padding: 5px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: var(--shadow); }
+  .tabs button { flex-direction: row; gap: 8px; padding: 10px 20px; border-radius: 999px; font-size: 0.95rem; flex: none; }
+  .tabs button svg { width: 20px; height: 20px; }
+  .tabs button[aria-selected="true"] { background: var(--navy); color: #fff; }
+}
+@media (min-width: 761px) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabs button[aria-selected="true"] { background: var(--sea); color: #06222b; } }
+:root[data-theme="dark"] .tabs button[aria-selected="true"] { background: var(--sea); color: #06222b; }
+
+/* the big answer */
+.answer { display: flex; align-items: center; gap: clamp(14px, 3vw, 28px); padding: clamp(20px, 4vw, 36px); border-radius: 28px; color: #fff;
+  background: radial-gradient(120% 140% at 100% 0%, rgba(224, 184, 102, 0.28), transparent 55%), linear-gradient(135deg, #0b6f86 0%, #0f2a33 78%); position: relative; overflow: hidden; box-shadow: var(--shadow); }
+.answer::after { content: ""; position: absolute; inset: auto 0 0 0; height: 46%; opacity: .22; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 120' preserveAspectRatio='none'%3E%3Cpath d='M0 70 C100 20 200 20 300 60 S500 100 600 55 S760 20 800 45 V120 H0Z' fill='%23ffffff'/%3E%3C/svg%3E") bottom/100% 100% no-repeat; }
+.answer > * { position: relative; z-index: 1; }
+.answer .eyebrow { color: rgba(255, 255, 255, 0.72); margin: 0 0 8px; }
+.answer .line { font-size: clamp(1.55rem, 4.6vw, 2.7rem); line-height: 1.08; font-weight: 800; letter-spacing: -0.025em; }
+.answer .line b { color: var(--sand); font-weight: 800; }
+.answer .subline { margin: 10px 0 0; font-size: 1.05rem; color: rgba(255, 255, 255, 0.85); }
+.answer .muted { color: rgba(255, 255, 255, 0.8); }
+.answer .badge { flex: none; display: grid; place-items: center; width: clamp(84px, 16vw, 124px); aspect-ratio: 1; border-radius: 50%; color: #0b2530; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.16); }
+.answer .badge b { font: 800 clamp(1.9rem, 5.4vw, 3rem)/1 var(--font-display); }
+.answer .badge i { font: 700 .62rem/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase; font-style: normal; margin-top: -14px; opacity: .8; }
+@media (max-width: 520px) { .answer { flex-direction: column; align-items: flex-start; } .answer .badge { width: 88px; } }
+
+/* ranked list */
+.rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rankrow { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 14px; padding: 14px 16px; border: none; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: transform .15s, box-shadow .2s; }
+.rankrow:hover { transform: translateY(-1px); }
+.rankrow.sel { box-shadow: 0 0 0 2.5px var(--sea), var(--shadow); }
+.rankrow .pos { font: 700 1rem var(--font-data); color: var(--ink-2); text-align: center; }
+.rankrow .who { display: grid; gap: 1px; min-width: 0; } .rankrow .who b { font: 700 1.12rem var(--font-display); } .rankrow .who .muted { font-size: .9rem; }
+.rankrow .tile { min-width: 62px; padding: 9px 0; border-radius: 16px; text-align: center; font-weight: 700; font-size: 1.3rem; color: #0b2530; }
+
+/* mini map */
+.duo { display: grid; gap: 44px; align-items: start; }
+@media (min-width: 900px) { .duo { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; } }
+@media (max-width: 720px) { .now { grid-template-columns: 1fr; } }
+.score .big small { font-size: 0.26em; margin-left: 6px; letter-spacing: 0; }
+.minimap { padding: 0; overflow: hidden; }
+#miniMap { display: block; width: 100%; height: auto; background: var(--water); }
+
+/* rating panel */
+.now { gap: clamp(20px, 4vw, 44px); }
+@media (min-width: 721px) { .now { grid-template-columns: minmax(230px, 300px) 1fr; } }
+.score { gap: 4px; }
+.score h1 { font-size: clamp(1.7rem, 5vw, 2.3rem); letter-spacing: -0.025em; line-height: 1.05; margin-top: 4px; }
+.score .big { font-size: clamp(5.4rem, 17vw, 7.6rem); letter-spacing: -0.045em; margin-top: 10px; }
+.score .label { font-size: .98rem; padding: 6px 14px; border-radius: 999px; margin-top: 8px; }
+.facts { gap: 20px 24px; }
+.fact .v { font: 700 1.35rem var(--font-display); letter-spacing: -0.01em; }
+.reality { background: var(--surface-2); border-radius: 18px; padding: 16px 18px; margin-top: 24px; }
+.factors { margin-top: 0; gap: 14px; }
+.factor .bar { height: 10px; border-radius: 6px; } .factor .bar i { border-radius: 6px; background: linear-gradient(90deg, var(--sea), #38b6cf); }
+
+/* forecast tab */
+.bestlines li { border: none; border-left: 6px solid var(--line); box-shadow: var(--shadow); border-radius: 18px; padding: 16px 18px; font-size: 1.02rem; }
+.day { border: none; box-shadow: var(--shadow); border-radius: 20px; padding: 18px; } .day.best { box-shadow: 0 0 0 2.5px var(--sea), var(--shadow); }
+
+/* sets simulator and chart */
+.two { gap: 16px; }
+#sim { border-radius: 16px; background: var(--surface-2); }
+.simbar button { border: none; background: var(--surface-2); border-radius: 999px; padding: 8px 16px; }
+.simbar select { border: none; background: var(--surface-2); border-radius: 999px; padding: 7px 12px; }
+#tlwrap { padding: 12px; }
+.legend { font-size: .8rem; }
+
+/* map tab */
+.mappanel { border-radius: var(--radius); box-shadow: var(--shadow); }
+.maptools { gap: 10px 20px; }
+.mapctl button, .mchip { border: none; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); }
+.maplegend { border-top: 1px solid var(--line); }
+
+/* about */
+.prose { font-size: 1rem; line-height: 1.6; }
+.tablewrap { padding: 8px 12px; }
+footer { text-align: center; padding: 10px 0; }
+footer .free b { color: var(--sea); }
+
+/* fine-tune sheet */
+.sheet { border: none; padding: 22px; border-radius: 26px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35); background: var(--surface); color: var(--ink); width: min(560px, calc(100vw - 24px)); max-height: 86vh; overflow: auto; }
+.sheet::backdrop { background: rgba(8, 21, 27, 0.5); backdrop-filter: blur(3px); }
+.sheet[open] { animation: rise .25s ease both; }
+.sheethead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sheethead button { width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--surface-2); color: var(--ink); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+@media (max-width: 760px) { .sheet { margin: auto auto 0; width: 100%; max-width: 100%; border-radius: 26px 26px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .tabpanel, .sheet[open] { animation: none; } }
+</style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="top">
-    <div class="brand">
+    <div class="toprow">
       <span class="logo"><img class="logo-light" src="assets/v2-light.svg" alt="Waive"><img class="logo-dark" src="assets/v2-dark.svg" alt="" aria-hidden="true"></span>
-      <h1 id="spotName">Tourmaline</h1>
-      <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
+      <span id="modeChip" class="chip"><span class="dot"></span><span id="modeText">Loading forecast…</span></span>
     </div>
     <div class="spots" id="spots" role="group" aria-label="Choose a break"></div>
-    <span id="modeChip" class="chip"><span class="dot"></span><span id="modeText">Loading forecast…</span></span>
+    <div class="pickers">
+      <div class="boards" id="boards" role="group" aria-label="Choose your board"></div>
+      <div class="skillrow">
+        <div class="boards skills" id="skills" role="group" aria-label="Choose your skill level"></div>
+        <button type="button" class="fine" id="tuneBtn" aria-haspopup="dialog">Fine-tune</button>
+      </div>
+    </div>
   </header>
-
-  <p class="free"><b>Free for everyone.</b> No ads, no sign-up, no account. Just the surf forecast.</p>
 
   <div id="banner" class="banner" hidden></div>
 
-  <section aria-label="Board">
-    <div class="boards" id="boards" role="group" aria-label="Choose your board"></div>
-    <p class="board-about" id="boardAbout"></p>
-    <div class="skillrow"><span class="eyebrow">Your skill level</span><div class="boards skills" id="skills" role="group" aria-label="Choose your skill level"></div><span class="muted" id="skillAbout"></span></div>
-    <details class="tune">
-      <summary>Tune settings for this board</summary>
-      <div class="tune-grid" id="tune"></div>
-      <p class="muted" style="margin:10px 0 0;font-size:.85rem">Changes are saved in this browser for each board. <button class="linkbtn" id="resetBoard" type="button">Reset this board</button></p>
-    </details>
-  </section>
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
+    <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
+    <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
+    <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
+    <button type="button" role="tab" id="tabbtn-about" data-tab="about" aria-controls="tab-about" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>About</span></button>
+  </nav>
 
-  <section aria-label="Map of the breaks">
-    <div>
-      <h2>Pacific Beach breaks</h2>
-      <p class="muted" style="margin:4px 0 0" id="mapSub">Tap a break to see its conditions.</p>
+  <main>
+  <div class="tabpanel" id="tab-today" role="tabpanel" aria-labelledby="tabbtn-today">
+    <section class="answer" id="answer" aria-live="polite" aria-label="Best surf right now"><p class="muted">Loading the forecast…</p></section>
+
+    <div class="duo">
+    <section aria-label="All breaks ranked">
+      <div class="sechead"><h2>All breaks</h2><p class="muted" id="rankSub">Ranked for your board.</p></div>
+      <ol class="rank" id="rank"></ol>
+    </section>
+
+    <section aria-label="Map overview">
+      <div class="sechead"><h2>Map</h2><button type="button" class="linkbtn" data-goto="map">Open the full map →</button></div>
+      <div class="panel minimap"><svg id="miniMap" role="group" aria-label="Map of the breaks. Tap one to select it."></svg></div>
+    </section>
     </div>
+
+    <section class="panel now" id="ratingPanel" aria-label="Rating">
+      <div class="score">
+        <span class="eyebrow" id="whenEyebrow">Right now</span>
+        <h1 id="spotName">Tourmaline</h1>
+        <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
+        <div class="big num" id="scoreBig">–<small>/10</small></div>
+        <span class="label" id="scoreLabel">–</span>
+        <span class="when muted" id="scoreWhen"></span>
+      </div>
+      <div>
+        <div class="facts" id="facts"></div>
+        <div class="reality" id="reality"></div>
+      </div>
+    </section>
+
+    <section aria-label="What the waves look like">
+      <div class="sechead">
+        <h2>What the sets look like</h2>
+        <p class="muted">A side view of the waves at the selected hour, drawn to scale next to a surfer of your height holding your board. Big waves arrive in sets with lulls in between.</p>
+      </div>
+    <div class="two">
+      <div class="panel simwrap">
+        <canvas id="sim" aria-label="Animated side view of waves arriving in sets"></canvas>
+        <div class="simbar">
+          <button id="simPlay" type="button">Pause</button>
+          <button id="simSpeed" type="button">Speed: 4×</button>
+          <label for="heightSel">Your height <select id="heightSel"></select></label>
+          <span id="simInfo" class="muted"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <span class="eyebrow">Swell window</span>
+        <svg id="compass" viewBox="0 0 240 240" role="img" aria-label="Swell and wind direction compared with the directions this break is open to"></svg>
+        <p class="muted" style="margin:6px 0 0;font-size:.84rem" id="spotBlurb"></p>
+      </div>
+    </div>
+
+    </section>
+
+    <section aria-label="Forecast">
+      <div class="sechead">
+        <h2>3 Day Forecast</h2>
+        <p class="muted">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
+      </div>
+    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--r1)"></i>Poor</span>
+      <span><i style="background:var(--r2)"></i>Poor to fair</span>
+      <span><i style="background:var(--r3)"></i>Fair</span>
+      <span><i style="background:var(--r4)"></i>Good</span>
+      <span><i style="background:var(--r5)"></i>Epic</span>
+      <span><i style="background:var(--night)"></i>Dark</span>
+    </div>
+
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast" hidden>
+    <section aria-label="Best time per day">
+      <div class="sechead"><h2>Best time to go</h2><p class="muted">One line per day, for your board and skill. Tap a line to load that hour.</p></div>
+      <ul class="bestlines" id="bestLines"></ul>
+    </section>
+    <section aria-label="Best times">
+      <div class="sechead"><h2>Day by day</h2><p class="muted">Daylight hours only, rated for your board. Tap a day to load its best hour.</p></div>
+      <div class="days" id="days"></div>
+    </section>
+    <section aria-label="Why this rating" class="panel">
+      <div class="sechead"><h2>Why this rating</h2><p class="muted" id="whyNote">How each factor scores at the hour you picked.</p></div>
+      <div class="factors" id="factors"></div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map" hidden>
+    <section aria-label="Map of the breaks">
+      <div class="sechead"><h2>Pacific Beach breaks</h2><p class="muted" id="mapSub">Tap a break to see its conditions.</p></div>
     <div class="maptools"><label for="towerToggle"><input type="checkbox" id="towerToggle" checked> Show lifeguard towers</label><label for="parkToggle"><input type="checkbox" id="parkToggle" checked> Show parking</label><span class="muted">Drag the map to move it. Use + and − to zoom.</span></div>
     <div class="mapgrid">
       <div class="panel mappanel">
@@ -283,99 +518,53 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
       </div>
       <div class="panel" id="mapCard"></div>
     </div>
-  </section>
 
-  <section class="panel now" id="ratingPanel" aria-label="Rating">
-    <div class="score">
-      <span class="eyebrow" id="whenEyebrow">Right now</span>
-      <div class="big num" id="scoreBig">–<small>/10</small></div>
-      <span class="label" id="scoreLabel">–</span>
-      <span class="when muted" id="scoreWhen"></span>
-    </div>
-    <div>
-      <div class="facts" id="facts"></div>
-      <div class="factors" id="factors"></div>
-      <div class="reality" id="reality"></div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <section aria-label="Best times">
-    <div>
-      <h2>Best time to go</h2>
-      <p class="muted" style="margin:4px 0 0">Daylight hours only, rated for your board. Tap a day to see it below.</p>
-    </div>
-    <div class="days" id="days"></div>
-  </section>
+  <div class="tabpanel" id="tab-accuracy" role="tabpanel" aria-labelledby="tabbtn-accuracy" hidden>
+    <section aria-label="Accuracy scorecard" id="scorecard">
+      <div class="sechead"><h2>Accuracy scorecard</h2><p class="muted">Every morning waive saves its wave forecast. Later it is checked against what the Torrey Pines buoy actually recorded. This is the running score.</p></div>
+      <div class="panel" id="scoreBody"><p class="muted">Loading the scorecard…</p></div>
+    </section>
+  </div>
 
-  <section aria-label="Forecast">
-    <div>
-      <h2>3 Day Forecast</h2>
-      <p class="muted" style="margin:4px 0 0">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
+  <div class="tabpanel" id="tab-about" role="tabpanel" aria-labelledby="tabbtn-about" hidden>
+    <section aria-label="About waive">
+      <div class="sechead"><h2>Free for everyone</h2><p class="muted">No ads, no sign-up, no account. Just the surf forecast.</p></div>
+    </section>
+    <section aria-label="How the rating works">
+      <div class="sechead"><h2>How the rating works</h2></div>
+    <div class="prose">
+      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
+      <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
+      <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
     </div>
-    <ul class="bestlines" id="bestLines"></ul>
-    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
-    <div class="legend">
-      <span><i style="background:var(--r1)"></i>Poor</span>
-      <span><i style="background:var(--r2)"></i>Poor to fair</span>
-      <span><i style="background:var(--r3)"></i>Fair</span>
-      <span><i style="background:var(--r4)"></i>Good</span>
-      <span><i style="background:var(--r5)"></i>Epic</span>
-      <span><i style="background:var(--night)"></i>Dark</span>
-    </div>
-  </section>
 
-  <section aria-label="What the waves look like">
-    <div>
-      <h2>What the sets look like</h2>
-      <p class="muted" style="margin:4px 0 0">A side view of the waves at the selected hour, drawn to scale next to a surfer of your height holding your board. Big waves arrive in sets with lulls in between, timed from the swell period.</p>
-    </div>
-    <div class="two">
-      <div class="panel simwrap">
-        <canvas id="sim" aria-label="Animated side view of waves arriving in sets"></canvas>
-        <div class="simbar">
-          <button id="simPlay" type="button">Pause</button>
-          <button id="simSpeed" type="button">Speed: 4×</button>
-          <label for="heightSel">Your height <select id="heightSel"></select></label>
-          <span id="simInfo" class="muted"></span>
-        </div>
-      </div>
-      <div class="panel">
-        <span class="eyebrow">Swell window</span>
-        <svg id="compass" viewBox="0 0 240 240" role="img" aria-label="Swell and wind direction compared with the directions this break is open to"></svg>
-        <p class="muted" style="margin:6px 0 0;font-size:.84rem" id="spotBlurb"></p>
-      </div>
-    </div>
-  </section>
-
-  <section aria-label="Accuracy scorecard" id="scorecard">
-    <div>
-      <h2>Accuracy scorecard</h2>
-      <p class="muted" style="margin:4px 0 0">Every morning waive saves its wave forecast. Later it is checked against what the Torrey Pines buoy actually recorded. This is the running score.</p>
-    </div>
-    <div class="panel" id="scoreBody"><p class="muted">Loading the scorecard…</p></div>
-  </section>
-
-  <section aria-label="Data sources">
-    <h2>Where the numbers come from</h2>
+    </section>
+    <section aria-label="Data sources">
+      <div class="sechead"><h2>Where the numbers come from</h2></div>
     <div class="panel tablewrap">
       <table>
         <thead><tr><th>Source</th><th>What it gives us</th><th>Status</th></tr></thead>
         <tbody id="sources"></tbody>
       </table>
     </div>
-  </section>
 
-  <section aria-label="How the rating works">
-    <h2>How the rating works</h2>
-    <div class="prose">
-      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
-      <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
-      <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
-    </div>
-  </section>
+    </section>
+  </div>
+  </main>
 
-  <footer>Prototype. Wave face heights are estimates. Always check the water yourself before paddling out.</footer>
+  <footer><span class="free"><b>Free, no ads, no sign-up.</b></span> Prototype. Wave face heights are estimates. Always check the water yourself before paddling out.</footer>
 </div>
+
+<dialog id="tuneDlg" class="sheet" aria-labelledby="tuneTitle">
+  <div class="sheethead"><h2 id="tuneTitle">Fine-tune</h2><button type="button" id="tuneClose" aria-label="Close">×</button></div>
+  <p class="board-about" id="boardAbout"></p>
+  <p class="muted" id="skillAbout" style="margin:0"></p>
+  <div class="tune-grid" id="tune"></div>
+  <p class="muted" style="margin:14px 0 0;font-size:.85rem">Changes are saved in this browser for each board. <button class="linkbtn" id="resetBoard" type="button">Reset this board</button></p>
+</dialog>
 
 <script>
 "use strict";
@@ -1173,13 +1362,13 @@ function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
   g.fillText(`You, ${fmtIn(heightIn)}`, x - 28, Math.min(top, btop) - 18);
   g.fillText(`${B.label.split(" ")[0]} ${fmtIn(Math.round((B.len[0] + B.len[1]) / 2 * 12))}`, x - 28, Math.min(top, btop) - 5);
 }
-function loop(now) { drawSim(now); requestAnimationFrame(loop); }
+function loop(now) { if ($("sim").offsetParent) drawSim(now); requestAnimationFrame(loop); }
 $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textContent = sim.playing ? "Pause" : "Play"; };
 $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 4 ? 10 : 1; $("simSpeed").textContent = `Speed: ${sim.speed}×${sim.speed === 1 ? " (real time)" : ""}`; };
 
 /* ---------- wiring ---------- */
-function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
-function refresh() { rescore(); renderNow(); renderReality(); renderScorecard(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
+function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); renderMini(); buildSeq(); }
+function refresh() { rescore(); renderNow(); renderReality(); renderScorecard(); renderToday(); renderDays(); renderTimeline(); renderCompass(); renderMap(); renderMini(); buildSeq(); }
 
 renderBoards(); renderTune();
 /* ---------- map ---------- */
@@ -1355,7 +1544,7 @@ function renderMap() {
       <li>Garnet Ave between Mission Blvd and Fanuel St, plus parts of Cass, Bayard and Hornblend, got meters in a city pilot that began in November 2023: 10 am to 8 pm, $1.25 an hour, 2-hour limit, free on Sundays <a href="https://digital-release.fox5sandiego.com/news/local-news/pacific-beach-parking-meters-now-active/amp/" target="_blank" rel="noopener">(Fox 5)</a>. Rules can change, so read the posted signs.</li>
       <li>Parking a few blocks inland and walking is usually easier than circling near Crystal Pier, Grand Ave and Mission Blvd <a href="https://parkmobile.io/parking/locations/ca/san-diego-parking/neighbourhood/pacific-beach" target="_blank" rel="noopener">(Parkmobile)</a>.</li></ul></details>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
-  $("toRating").onclick = () => $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("toRating").onclick = () => { showTab("today"); $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
 }
 $("towerToggle").checked = showTowers;
 $("towerToggle").onchange = () => { showTowers = $("towerToggle").checked; store.set("waive.towers", showTowers); renderMap(); };
@@ -1375,6 +1564,92 @@ function switchSpot(k) {
   try { history.replaceState(null, "", "#" + k); } catch (e) {}
   renderSpot(); refresh();
 }
+/* ---------- tabs, fine-tune sheet, Today screen ---------- */
+const TABS = ["today", "forecast", "map", "accuracy", "about"];
+function showTab(name, focus) {
+  if (!TABS.includes(name)) name = "today";
+  for (const t of TABS) { const on = t === name; $("tab-" + t).hidden = !on; const b = $("tabbtn-" + t); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; }
+  window.scrollTo({ top: 0 });
+  if (name === "map") { applyView(); renderMap(); }
+  window.dispatchEvent(new Event("resize"));
+  if (focus) $("tabbtn-" + name).focus();
+}
+$("tabs").querySelectorAll("button").forEach(b => {
+  b.onclick = () => showTab(b.dataset.tab);
+  b.onkeydown = ev => { const i = TABS.indexOf(b.dataset.tab); if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") { ev.preventDefault(); showTab(TABS[(i + (ev.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length], true); } };
+});
+document.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => showTab(b.dataset.goto));
+$("tuneBtn").onclick = () => $("tuneDlg").showModal();
+$("tuneClose").onclick = () => $("tuneDlg").close();
+$("tuneDlg").addEventListener("click", ev => { if (ev.target === $("tuneDlg")) $("tuneDlg").close(); });
+
+// Run a calculation as if another break were selected (its own ratings for every hour), then put everything back.
+function withSpot(key, fn) {
+  const ps = SPOT, pS = SCORED; SPOT = SPOTS[key];
+  try { SCORED = HOURS_DATA.map(h => derive(h, spotProfile())); return fn(); } finally { SPOT = ps; SCORED = pS; }
+}
+function dayWord(key) {
+  const today = la(Date.now()).key; if (key === today) return "today";
+  const tom = la(Date.now() + 86400000).key; if (key === tom) return "tomorrow";
+  const [Y, M, D] = key.split("-").map(Number); return fmtWk.format(new Date(Date.UTC(Y, M - 1, D, 19)));
+}
+function renderToday() {
+  if (!HOURS_DATA.length) return;
+  const board = BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey), now = Date.now();
+  const per = Object.keys(SPOTS).map(k => ({ k, name: SPOTS[k].name, wins: withSpot(k, () => computeWindows().map(w => {
+    const b = w.best, s0 = SCORED[b.idx[0]], e0 = SCORED[b.idx[b.idx.length - 1]], mid = SCORED[b.idx[Math.floor(b.idx.length / 2)]];
+    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face };
+  })) }));
+  const first = per.reduce((a, p) => (p.wins.length && (!a || p.wins[0].key < a) ? p.wins[0].key : a), null);
+  if (!first) { $("answer").innerHTML = `<p class="muted">No daylight hours left in the forecast yet.</p>`; $("rank").innerHTML = ""; return; }
+  const rows = per.map(p => ({ k: p.k, name: p.name, w: p.wins.find(w => w.key === first) })).filter(r => r.w).sort((a, b) => b.w.avg - a.w.avg);
+  const dw = dayWord(first), top = rows[0], rc = ratingClass(top.w.avg);
+  let line, sub = "";
+  if (top.w.avg >= WORTH_IT) {
+    const nowIn = top.w.s <= now && now < top.w.e;
+    line = `${nowIn ? "Best now" : "Best " + dw}: <b>${top.name}</b>, ${top.w.avg.toFixed(1)}/10 for your ${board}, ${windowText(top.w.s, top.w.e)}`;
+  } else {
+    line = `Nothing worth paddling out for ${dw}.`;
+    const later = per.flatMap(p => p.wins.filter(w => w.key !== first && w.avg >= WORTH_IT).map(w => ({ name: p.name, w }))).sort((a, b) => b.w.avg - a.w.avg)[0];
+    sub = later ? `Next good window: ${dayWord(later.w.key)} at ${later.name}, ${later.w.avg.toFixed(1)}/10, ${windowText(later.w.s, later.w.e)}.` : "Nothing good in the next few days either. Check back tomorrow.";
+  }
+  $("answer").innerHTML = `<span class="badge" style="background:var(${rc.c})"><b class="num">${top.w.avg.toFixed(1)}</b><i>${rc.label}</i></span>
+    <div><p class="eyebrow">${top.w.avg >= WORTH_IT ? "The best call" : "The call"}</p><h2 class="line">${line}</h2>${sub ? `<p class="subline">${sub}</p>` : ""}</div>`;
+  $("rankSub").textContent = `Best window ${dw}, rated for your ${board}.`;
+  $("rank").innerHTML = rows.map((r, i) => { const c = ratingClass(r.w.avg), ok = r.w.avg >= WORTH_IT;
+    return `<li><button type="button" class="rankrow${r.k === spotKey ? " sel" : ""}" data-k="${r.k}" aria-pressed="${r.k === spotKey}">
+      <span class="pos">${i + 1}</span>
+      <span class="who"><b>${r.name}</b><span class="muted">${ok ? windowText(r.w.s, r.w.e) + " · " + Math.max(0, r.w.face - 0.5).toFixed(0) + "–" + Math.ceil(r.w.face + 0.5) + " ft" : "No good window " + dw}</span></span>
+      <span class="tile num" style="background:var(${c.c})">${r.w.avg.toFixed(1)}</span></button></li>`; }).join("");
+  $("rank").querySelectorAll(".rankrow").forEach(b => b.onclick = () => switchSpot(b.dataset.k));
+}
+// A small map for the Today screen: the coast, the breaks and their ratings.
+function renderMini() {
+  const svg = $("miniMap"); if (!svg || !HOURS_DATA[selected]) return;
+  const coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1], land = `${coast} L${MAP.W + 40},${bot[1]} L${MAP.W + 40},${top[1]} Z`;
+  const pts = Object.values(SPOTS).map(sp => mapXY(sp.lat, sp.lon)), ys = pts.map(p => p[1]);
+  const y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
+  const x0 = Math.min(...Object.values(SPOTS).map((sp, i) => pts[i][0] - 30 - (Math.max(sp.name.length * 8.4, 64) + 20))) - 14, x1 = Math.max(...pts.map(p => p[0])) + 90;
+  svg.setAttribute("viewBox", `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
+  let g = `<defs><linearGradient id="wg2" x1="0" x2="1"><stop offset="0" style="stop-color:var(--water-deep)"/><stop offset="1" style="stop-color:var(--water)"/></linearGradient></defs>
+    <rect x="-60" y="${y0 - 60}" width="${MAP.W + 120}" height="${y1 - y0 + 120}" fill="url(#wg2)"/>`;
+  [[16, 0.4], [36, 0.25], [62, 0.14]].forEach(([d, o]) => { g += `<path d="${coast}" transform="translate(${-d},0)" fill="none" stroke="var(--wave)" stroke-opacity="${o}" stroke-width="1.8" stroke-dasharray="12 9" stroke-linecap="round"/>`; });
+  g += `<path d="${land}" fill="var(--land)"/><path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="17" stroke-linecap="round"/><path d="${coast}" transform="translate(-8,0)" fill="none" stroke="var(--wave)" stroke-opacity="0.75" stroke-width="2.2" stroke-linecap="round"/>`;
+  for (const [k, sp] of Object.entries(SPOTS)) {
+    const r = spotNow(k), rc = ratingClass(r.rating), [x, y] = mapXY(sp.lat, sp.lon), sel = k === spotKey, tw = Math.max(sp.name.length * 8.4, 64) + 20;
+    g += `<g class="pin" tabindex="0" role="button" data-k="${k}" aria-label="${sp.name}, rated ${r.rating.toFixed(1)} out of 10, ${rc.label}" aria-pressed="${sel}">
+      <rect x="${x - 30 - tw}" y="${y - 20}" width="${tw}" height="40" rx="12" fill="var(--surface)" fill-opacity="0.96" stroke="${sel ? "var(--ink)" : "none"}" stroke-width="2.2"/>
+      <text class="nm${sel ? " sel" : ""}" x="${x - 40}" y="${y - 3}" text-anchor="end">${sp.name}</text>
+      <text class="sub" x="${x - 40}" y="${y + 13}" text-anchor="end">${Math.max(0, r.face - 0.5).toFixed(0)}–${Math.ceil(r.face + 0.5)} ft</text>
+      <circle class="hit" cx="${x}" cy="${y}" r="26" fill="transparent"/>
+      ${sel ? `<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="var(--ink)" stroke-width="3"/>` : ""}
+      <circle class="dot" cx="${x}" cy="${y}" r="21" fill="var(${rc.c})" stroke="var(--surface)" stroke-width="3"/>
+      <text class="rt" x="${x}" y="${y + 5}">${r.rating.toFixed(1)}</text></g>`;
+  }
+  svg.innerHTML = g;
+  svg.querySelectorAll(".pin").forEach(pin => { pin.onclick = () => switchSpot(pin.dataset.k); pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } }; });
+}
+
 renderSpot();
 loadScorecard();
 loadAll().then(() => {
