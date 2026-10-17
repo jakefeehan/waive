@@ -21,6 +21,7 @@
   --sea-soft: #b9dce3;
   --sand: #d9b779;
   --night: rgba(15, 42, 51, 0.07);
+  --water: #cfe4ec; --land: #e3e7df; --land-ink: #7d8c8a; --beach: #e2cd9c;
   --r1: #e05252;
   --r2: #c9a24a;
   --r3: #e2b93b;
@@ -34,6 +35,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
     --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
+    --water: #0e2a36; --land: #1a2c2f; --land-ink: #6f8586; --beach: #8a7a55;
     --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
     color-scheme: dark;
   }
@@ -41,6 +43,7 @@
 :root[data-theme="dark"] {
   --bg: #0b1a20; --surface: #12262e; --surface-2: #1a323b; --ink: #e3eef0; --ink-2: #9db4bb;
   --line: #2a444d; --sea: #4fc0d8; --sea-soft: #1d4b57; --sand: #c9a86a; --night: rgba(0, 0, 0, 0.28);
+  --water: #0e2a36; --land: #1a2c2f; --land-ink: #6f8586; --beach: #8a7a55;
   --r1: #e86a6a; --r2: #c99a3a; --r3: #e6c14c; --r4: #3fbf8c; --r5: #7f9bff;
   color-scheme: dark;
 }
@@ -68,6 +71,28 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .spots { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
 .spots button { font: 600 0.85rem var(--font-body); padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .spots button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.mapgrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .mapgrid { grid-template-columns: 1fr; } }
+.mappanel { padding: 0; overflow: hidden; }
+#map { display: block; width: 100%; height: auto; background: var(--water); }
+#map text { font-family: var(--font-body); }
+#map .pin { cursor: pointer; outline: none; }
+#map .pin:focus-visible circle.hit { stroke: var(--ink); stroke-width: 3; }
+#map .pin circle.dot { transition: r .12s; }
+#map .rt { font: 700 14px var(--font-data); fill: #0f2a33; paint-order: stroke; stroke: rgba(255, 255, 255, 0.8); stroke-width: 3px; stroke-linejoin: round; text-anchor: middle; }
+#map .nm { font: 600 15px var(--font-body); fill: var(--ink); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
+#map .nm.sel { font-weight: 700; }
+#map .sub { font: 500 12px var(--font-data); fill: var(--ink-2); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
+#map .geo { font: 500 12px var(--font-data); letter-spacing: 0.12em; text-transform: uppercase; fill: var(--ink-2); }
+#map .geo.land { fill: var(--land-ink); }
+#mapCard h3 { font-size: 1.3rem; }
+#mapCard .rate { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+#mapCard .rate b { font: 700 2.4rem/1 var(--font-display); }
+#mapCard .rate span { font: 600 0.9rem var(--font-body); padding: 3px 10px; border-radius: 6px; color: #0f2a33; }
+#mapCard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0 0 12px; font-size: 0.9rem; }
+#mapCard dt { color: var(--ink-2); } #mapCard dd { margin: 0; }
+#mapCard .about { margin: 0 0 12px; font-size: 0.88rem; color: var(--ink-2); }
+#mapCard hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 500 0.78rem var(--font-data); border: 1px solid var(--line); background: var(--surface); }
 .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); }
 .chip.live .dot { background: var(--r4); }
@@ -183,7 +208,18 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
     </details>
   </section>
 
-  <section class="panel now" aria-label="Rating">
+  <section aria-label="Map of the breaks">
+    <div>
+      <h2>Pacific Beach breaks</h2>
+      <p class="muted" style="margin:4px 0 0" id="mapSub">Tap a break to see its conditions.</p>
+    </div>
+    <div class="mapgrid">
+      <div class="panel mappanel"><svg id="map" viewBox="0 0 600 580" role="group" aria-label="Map of the Pacific Beach breaks, north at the top"></svg></div>
+      <div class="panel" id="mapCard"></div>
+    </div>
+  </section>
+
+  <section class="panel now" id="ratingPanel" aria-label="Rating">
     <div class="score">
       <span class="eyebrow" id="whenEyebrow">Right now</span>
       <div class="big num" id="scoreBig">–<small>/10</small></div>
@@ -273,20 +309,49 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} },
 };
+// Where the data comes from for the whole stretch of coast (all the breaks are within about 2 km of each other).
+const REGION = { lat: 32.80, lon: -117.262, marineLat: 32.80, marineLon: -117.28, tideStation: "9410230", buoy: "46225" };
 // Each break: where it is, which way it faces, which swell directions reach it, and how it reacts to size and tide.
 // exposure rows are [from°, to°, share of swell that reaches the break]; anything outside gets 0.1.
+// Listed north to south. Positions are on the water just off the sand; swell and tide notes come from the break guides on Surf-Forecast and Mondo.
 const SPOTS = {
   tourmaline: {
-    name: "Tourmaline", area: "Pacific Beach, San Diego", lat: 32.8052, lon: -117.2626, facing: 250,
+    name: "Tourmaline", area: "Pacific Beach, San Diego", lat: 32.8045, lon: -117.2639, facing: 250,
     exposure: [[205, 280, 1], [190, 205, 0.8], [280, 295, 0.8], [175, 190, 0.55], [295, 310, 0.55], [160, 175, 0.3], [310, 320, 0.3]],
-    sizeFactor: 1, tideShift: 0,
+    sizeFactor: 1, tideShift: 0, tideWeight: 1,
+    type: "Reef and cobble", bestSwell: "West to southwest", bestWind: "East-northeast (offshore)", bestTide: "Mid to high", reliability: "Fairly consistent",
     blurb: "A slow, rolling reef and cobblestone break. La Jolla blocks some northwest swell and Point Loma blocks some south swell.",
     tideNote: "Tourmaline's reef and rocks like mid to high tide.",
   },
+  law: {
+    name: "Law Street", area: "Pacific Beach, San Diego", lat: 32.8013, lon: -117.2615, facing: 255,
+    exposure: [[235, 290, 1], [210, 235, 0.8], [290, 305, 0.7], [190, 210, 0.5], [305, 320, 0.4], [170, 190, 0.3]],
+    sizeFactor: 1.05, tideShift: 0, tideWeight: 0.4,
+    type: "Sandbar beach break, shifting peaks", bestSwell: "West", bestWind: "East-northeast (offshore)", bestTide: "All tides", reliability: "Inconsistent, doesn't work often",
+    blurb: "A sandy beach break with scattered peaks that move with the sandbars. It is friendly for beginners when it breaks, but it needs a good west swell.",
+    tideNote: "Law Street is a sandbar break that works at most tides, so tide barely changes its rating.",
+  },
+  diamond: {
+    name: "Diamond Street", area: "Pacific Beach, San Diego", lat: 32.7988, lon: -117.2603, facing: 255,
+    exposure: [[235, 290, 1], [210, 235, 0.8], [290, 305, 0.7], [190, 210, 0.5], [305, 320, 0.4], [170, 190, 0.3]],
+    sizeFactor: 1.05, tideShift: 0.5, tideWeight: 0.8,
+    type: "Sand-bottom beach break", bestSwell: "West", bestWind: "East-northeast (offshore)", bestTide: "Medium to high", reliability: "Fairly consistent",
+    blurb: "A sand-bottom beach break between Law Street and the pier. It likes west groundswell and works best on medium to high tides.",
+    tideNote: "Diamond Street's sandbars work best on medium to high tide.",
+  },
+  crystal: {
+    name: "Crystal Pier", area: "Pacific Beach, San Diego", lat: 32.7958, lon: -117.2600, facing: 255,
+    exposure: [[200, 285, 1], [185, 200, 0.7], [285, 300, 0.7], [170, 185, 0.45], [300, 315, 0.4], [160, 170, 0.25]],
+    sizeFactor: 1.1, tideShift: -0.5, tideWeight: 1,
+    type: "Beach break, lefts and rights, rocks near the pier", bestSwell: "Southwest groundswell", bestWind: "Northeast (offshore)", bestTide: "Mid tide, falling", reliability: "Consistent, often crowded",
+    blurb: "An exposed beach break that picks up swell well. The pier shapes the sandbars. Rocks are a hazard, and it is often crowded.",
+    tideNote: "Crystal Pier works best around mid tide when the tide is falling.",
+  },
   pbdrive: {
-    name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7893, lon: -117.2553, facing: 255,
+    name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7912, lon: -117.2573, facing: 255,
     exposure: [[200, 295, 1], [185, 200, 0.8], [295, 310, 0.8], [170, 185, 0.55], [310, 320, 0.55], [160, 170, 0.3], [320, 330, 0.3]],
-    sizeFactor: 1.1, tideShift: -1,
+    sizeFactor: 1.1, tideShift: -1, tideWeight: 1,
+    type: "Sandbar beach break", bestSwell: "West-southwest", bestWind: "East-northeast (offshore)", bestTide: "Low to mid", reliability: "Fairly consistent",
     blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell.",
     tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide and get soft and close out at high tide.",
   },
@@ -294,7 +359,7 @@ const SPOTS = {
 let spotKey = (location.hash || "").slice(1);
 if (!SPOTS[spotKey]) spotKey = store.get("waive.spot") || "tourmaline";
 if (!SPOTS[spotKey]) spotKey = "tourmaline";
-let SPOT = Object.assign({ tideStation: "9410230", buoy: "46225" }, SPOTS[spotKey]);
+let SPOT = SPOTS[spotKey];
 const HOURS = 72;
 const HOUR = 3600e3;
 
@@ -304,7 +369,7 @@ const BOARDS = {
   shortboard: { label: "Shortboard", len: [5.5, 6.33], lenText: "5′6″ – 6′4″", nose: "point", width: 1.55, about: "Short, narrow and pointy. Fast and easy to turn, but hard to paddle and catch waves. For experienced surfers in waist-high or bigger waves.", size: [3, 6], ok: [1.5, 9], period: 10, wind: 10, tide: [1, 4], w: { size: 1, wind: 0.8, period: 0.5, tide: 0.35 } },
   funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 4.5], ok: [0.8, 6.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
   wavestorm:  { label: "Wavestorm",  len: [8, 8], lenText: "8′0″", nose: "round", width: 1.9, about: "The classic 8′ soft-top foam board. Soft so it won't hurt if it hits you, very stable, and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
-  longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board at Tourmaline.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
+  longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board for small, clean days.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
 };
 
 let boardKey = store.get("waive.board") || "longboard";
@@ -347,7 +412,7 @@ async function getText(url, ms = 12000) {
 
 /* ---------- sun ---------- */
 function sunTimes(localNoonMs) {
-  const rad = Math.PI / 180, lat = SPOT.lat, lon = SPOT.lon;
+  const rad = Math.PI / 180, lat = REGION.lat, lon = REGION.lon;
   const jd = localNoonMs / 86400000 + 2440587.5;
   const n = Math.round(jd - 2451545.0);
   const Js = n - lon / 360;
@@ -384,19 +449,19 @@ function expandNWS(values, map, key) {
 }
 
 async function loadMarine() {
-  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${(SPOT.lat - 0.005).toFixed(3)}&longitude=${(SPOT.lon - 0.02).toFixed(3)}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&timeformat=unixtime&timezone=GMT&forecast_days=4`;
+  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${REGION.marineLat}&longitude=${REGION.marineLon}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&timeformat=unixtime&timezone=GMT&forecast_days=4`;
   const j = await getJSON(u); const h = j.hourly, out = {};
   h.time.forEach((t, i) => { out[t * 1000] = { wave: h.wave_height[i], swell: h.swell_wave_height[i], period: h.swell_wave_period[i], dir: h.swell_wave_direction[i], windWave: h.wind_wave_height[i] }; });
   return out;
 }
 async function loadWind() {
-  const u = `https://api.open-meteo.com/v1/forecast?latitude=${SPOT.lat}&longitude=${SPOT.lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&timeformat=unixtime&timezone=GMT&forecast_days=4`;
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${REGION.lat}&longitude=${REGION.lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&timeformat=unixtime&timezone=GMT&forecast_days=4`;
   const j = await getJSON(u); const h = j.hourly, out = {};
   h.time.forEach((t, i) => { out[t * 1000] = { mph: h.wind_speed_10m[i], dir: h.wind_direction_10m[i], gust: h.wind_gusts_10m[i], tempF: h.temperature_2m[i] }; });
   return out;
 }
 async function loadNWS() {
-  const pt = await getJSON(`https://api.weather.gov/points/${SPOT.lat},${SPOT.lon}`);
+  const pt = await getJSON(`https://api.weather.gov/points/${REGION.lat},${REGION.lon}`);
   const [hourly, grid] = await Promise.allSettled([getJSON(pt.properties.forecastHourly), getJSON(pt.properties.forecastGridData)]);
   let hourlyOut = null, gridOut = null;
   if (hourly.status === "fulfilled") {
@@ -418,7 +483,7 @@ async function loadNWS() {
 }
 function ymd(ms) { const d = new Date(ms); return d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, "0") + String(d.getUTCDate()).padStart(2, "0"); }
 async function loadTide(startMs) {
-  const base = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=${SPOT.tideStation}&datum=MLLW&units=english&time_zone=gmt&format=json&application=waive&begin_date=${ymd(startMs - 86400000)}&range=120`;
+  const base = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=${REGION.tideStation}&datum=MLLW&units=english&time_zone=gmt&format=json&application=waive&begin_date=${ymd(startMs - 86400000)}&range=120`;
   const [h, hl] = await Promise.all([getJSON(base + "&interval=h"), getJSON(base + "&interval=hilo")]);
   const parse = s => { const [d, t] = s.split(" "); const [Y, M, D] = d.split("-").map(Number); const [hh, mm] = t.split(":").map(Number); return Date.UTC(Y, M - 1, D, hh, mm); };
   const hourly = {}; for (const p of h.predictions) hourly[parse(p.t)] = +p.v;
@@ -432,7 +497,7 @@ async function loadBuoy() {
     const t = Date.parse(j.t);
     if (j.hs != null && Date.now() - t < 6 * HOUR) return Object.assign({}, j, { t });
   } catch (e) {}
-  const txt = await getText(`https://www.ndbc.noaa.gov/data/realtime2/${SPOT.buoy}.txt`);
+  const txt = await getText(`https://www.ndbc.noaa.gov/data/realtime2/${REGION.buoy}.txt`);
   for (const line of txt.split("\n")) {
     if (!line || line[0] === "#") continue;
     const c = line.trim().split(/\s+/);
@@ -513,7 +578,7 @@ function scoreHour(h, P) {
   }
   const direction = 0.6 + 0.4 * exposure(h.dir);
   const w = P.w;
-  const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide) * Math.pow(direction, 0.5);
+  const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide * (SPOT.tideWeight || 1)) * Math.pow(direction, 0.5);
   const rating = 10 * Math.pow(p, 2);
   return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide, direction } };
 }
@@ -563,8 +628,7 @@ async function loadAll() {
     else { wd = sample.wind[t0]; usedSample.add("wind"); }
     const cal = src === "marine" && BUOY ? 1 + (CAL - 1) * Math.exp(-i / 18) : 1;
     const hs = sw.swell * cal;
-    const face = faceFt(hs, sw.period, sw.dir);
-    HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, face, setFace: face * 1.4, mph: wd.mph, windDir: wd.dir, gust: wd.gust, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
+    HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, mph: wd.mph, windDir: wd.dir, gust: wd.gust, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
   }
   if (!BUOY) BUOY = Object.assign({ sample: true }, sample.buoy);
   const live = liveCount > 0;
@@ -588,7 +652,10 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 let SCORED = [];
 
 function spotProfile() { const P = profile(); return Object.assign({}, P, { tide: P.tide.map(v => v + SPOT.tideShift) }); }
-function rescore() { const P = spotProfile(); SCORED = HOURS_DATA.map(h => Object.assign({}, h, scoreHour(h, P))); }
+function derive(h, P) { const face = faceFt(h.hs, h.period, h.dir); const f = Object.assign({}, h, { face, setFace: face * 1.4 }); return Object.assign(f, scoreHour(f, P)); }
+function rescore() { const P = spotProfile(); SCORED = HOURS_DATA.map(h => derive(h, P)); }
+function atSpot(key, fn) { const prev = SPOT; SPOT = SPOTS[key]; try { return fn(); } finally { SPOT = prev; } }
+function spotNow(key) { return atSpot(key, () => derive(HOURS_DATA[selected], spotProfile())); }
 
 function renderBoards() {
   $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText + " long"}</small></button>`).join("");
@@ -919,10 +986,83 @@ $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textCont
 $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 4 ? 10 : 1; $("simSpeed").textContent = `Speed: ${sim.speed}×${sim.speed === 1 ? " (real time)" : ""}`; };
 
 /* ---------- wiring ---------- */
-function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderTimeline(); renderCompass(); buildSeq(); }
-function refresh() { rescore(); renderNow(); renderDays(); renderTimeline(); renderCompass(); buildSeq(); }
+function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
+function refresh() { rescore(); renderNow(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
 
 renderBoards(); renderTune();
+/* ---------- map ---------- */
+const MAP = { lat0: 32.8090, lon0: -117.2725, S: 240, W: 600, H: 580 };
+const mapXY = (lat, lon) => [(lon - MAP.lon0) * 93.58 * MAP.S, (MAP.lat0 - lat) * 110.95 * MAP.S];
+// Shoreline from Pacific Beach Point down to Mission Beach, drawn through the break positions (shifted a little east onto the sand).
+const COAST = [[32.8100, -117.2695], [32.8072, -117.2672], [32.8058, -117.2655], [32.8045, -117.2634], [32.8013, -117.2610], [32.7988, -117.2598], [32.7958, -117.2587], [32.7935, -117.2580], [32.7912, -117.2567], [32.7890, -117.2556], [32.7868, -117.2546]].map(([a, b]) => mapXY(a, b));
+function smooth(pts) {
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+const arrowAt = (x, y, bearing, len, col) => {
+  const r = bearing * Math.PI / 180, dx = Math.sin(r), dy = -Math.cos(r), hx = x + dx * len, hy = y + dy * len, px = -dy, py = dx;
+  return `<path d="M${x},${y} L${hx},${hy} M${hx},${hy} L${hx - dx * 9 + px * 6},${hy - dy * 9 + py * 6} M${hx},${hy} L${hx - dx * 9 - px * 6},${hy - dy * 9 - py * 6}" stroke="${col}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+};
+function renderMap() {
+  const h0 = HOURS_DATA[selected]; if (!h0) return;
+  const svg = $("map"), coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1];
+  const land = `${coast} L${MAP.W},${bot[1]} L${MAP.W},${top[1]} Z`;
+  let g = `<rect width="${MAP.W}" height="${MAP.H}" fill="var(--water)"/>`;
+  g += `<path d="${land}" fill="var(--land)"/>`;
+  g += `<path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="9" stroke-linecap="round"/>`;
+  // Ocean Blvd runs along the sand; Garnet Ave leads inland from Crystal Pier
+  g += `<path d="${coast}" transform="translate(34,0)" fill="none" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/>`;
+  const [cx, cy] = mapXY(SPOTS.crystal.lat, -117.2587);
+  g += `<path d="M${cx + 34},${cy} L${MAP.W},${cy}" stroke="var(--line)" stroke-width="4"/>`;
+  g += `<text class="geo land" x="${MAP.W - 14}" y="${cy - 8}" text-anchor="end">Garnet Ave</text>`;
+  g += `<text class="geo land" x="${cx + 76}" y="${cy - 84}">Pacific Beach</text>`;
+  g += `<text class="geo" x="26" y="${MAP.H - 24}">Pacific Ocean</text>`;
+  const [px0, py0] = mapXY(SPOTS.crystal.lat, SPOTS.crystal.lon), [px1] = mapXY(SPOTS.crystal.lat, -117.2587);
+  g += `<path d="M${px1 + 2},${py0} L${px0 - 6},${py0}" stroke="var(--ink-2)" stroke-width="6" stroke-linecap="butt"/>`;
+  // swell and wind arrows
+  if (h0.dir != null) { const sx = 90, sy = 86; g += arrowAt(sx, sy, h0.dir + 180, 54, "var(--sea)"); g += `<text class="sub" x="${sx - 56}" y="${sy + 76}">Swell ${degToCompass(h0.dir)}</text><text class="sub" x="${sx - 56}" y="${sy + 92}">${mToFt(h0.hs).toFixed(1)} ft @ ${h0.period ? h0.period.toFixed(0) : "–"} s</text>`; }
+  if (h0.windDir != null && h0.mph != null) { const wx = 505, wy = 400; g += arrowAt(wx, wy, h0.windDir + 180, 44, "var(--r2)"); g += `<text class="geo land" x="${wx - 40}" y="${wy + 62}">Wind ${degToCompass(h0.windDir)} ${Math.round(h0.mph)} mph</text>`; }
+  // north arrow and scale
+  g += `<g transform="translate(560,40)"><path d="M0,-18 L7,8 L0,3 L-7,8 Z" fill="var(--ink)"/><text class="geo" x="0" y="26" text-anchor="middle" style="letter-spacing:0">N</text></g>`;
+  const m500 = 0.5 * MAP.S;
+  g += `<g transform="translate(${MAP.W - 24 - m500},${MAP.H - 28})"><path d="M0,0 H${m500} M0,-5 V5 M${m500},-5 V5" stroke="var(--ink-2)" stroke-width="2"/><text class="geo" x="${m500 / 2}" y="-10" text-anchor="middle" style="letter-spacing:0">500 m</text></g>`;
+  // pins
+  for (const [k, sp] of Object.entries(SPOTS)) {
+    const r = spotNow(k), rc = ratingClass(r.rating), [x, y] = mapXY(sp.lat, sp.lon), sel = k === spotKey;
+    g += `<g class="pin" tabindex="0" role="button" data-k="${k}" aria-label="${sp.name}, rated ${r.rating.toFixed(1)} out of 10, ${rc.label}" aria-pressed="${sel}">
+      <title>${sp.name}: ${r.rating.toFixed(1)}/10 ${rc.label}</title>
+      <circle class="hit" cx="${x}" cy="${y}" r="26" fill="transparent"/>
+      ${sel ? `<circle cx="${x}" cy="${y}" r="26" fill="none" stroke="var(--ink)" stroke-width="3"/>` : ""}
+      <circle class="dot" cx="${x}" cy="${y}" r="20" fill="var(--${rc.c.slice(2)})" stroke="var(--surface)" stroke-width="3"/>
+      <text class="rt" x="${x}" y="${y + 5}">${r.rating.toFixed(1)}</text>
+      <text class="nm${sel ? " sel" : ""}" x="${x - 34}" y="${y - 2}" text-anchor="end">${sp.name}</text>
+      <text class="sub" x="${x - 34}" y="${y + 14}" text-anchor="end">${Math.max(0, r.face - 0.5).toFixed(0)}–${Math.ceil(r.face + 0.5)} ft</text>
+    </g>`;
+  }
+  svg.innerHTML = g;
+  svg.querySelectorAll(".pin").forEach(pin => {
+    pin.onclick = () => switchSpot(pin.dataset.k);
+    pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } };
+  });
+  $("mapSub").textContent = `Ratings for ${fmtDay.format(new Date(h0.t))}, ${hourLabel(h0.t)}, on a ${BOARDS[boardKey].label.toLowerCase()}. Tap a break to see its conditions. Pick another hour in the 3 Day Forecast and the map updates.`;
+  // detail card for the selected break
+  const h = SCORED[selected], rc = ratingClass(h.rating), sp = SPOT, nh = nextHilo(h.t);
+  $("mapCard").innerHTML = `<span class="eyebrow">Selected break</span><h3>${sp.name}</h3>
+    <div class="rate"><b class="num">${h.rating.toFixed(1)}</b><span style="background:var(${rc.c})">${rc.label}</span></div>
+    <dl><dt>Surf</dt><dd class="num">${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)} ft (${bodyScale(h.face).toLowerCase()})</dd>
+      <dt>Swell</dt><dd class="num">${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s from ${h.dir != null ? degToCompass(h.dir) : "–"}, ${Math.round(exposure(h.dir) * 100)}% open</dd>
+      <dt>Wind</dt><dd class="num">${h.mph != null ? Math.round(h.mph) + " mph " + degToCompass(h.windDir) + ", " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
+      <dt>Tide</dt><dd class="num">${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}${nh ? `, ${nh.type === "H" ? "high" : "low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""}</dd></dl>
+    <hr><p class="about">${sp.blurb}</p>
+    <dl><dt>Type</dt><dd>${sp.type}</dd><dt>Best swell</dt><dd>${sp.bestSwell}</dd><dt>Best wind</dt><dd>${sp.bestWind}</dd><dt>Best tide</dt><dd>${sp.bestTide}</dd><dt>Reliability</dt><dd>${sp.reliability}</dd></dl>
+    <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
+  $("toRating").onclick = () => $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
 function renderSpot() {
   $("spots").innerHTML = Object.entries(SPOTS).map(([k, sp]) => `<button type="button" data-k="${k}" aria-pressed="${k === spotKey}">${sp.name}</button>`).join("");
   $("spots").querySelectorAll("button").forEach(btn => btn.onclick = () => switchSpot(btn.dataset.k));
@@ -930,13 +1070,12 @@ function renderSpot() {
   $("spotBlurb").textContent = "The shaded arc is the swell directions that reach " + SPOT.name + ". " + SPOT.blurb;
   $("tideNote").textContent = SPOT.tideNote;
 }
-async function switchSpot(k) {
+function switchSpot(k) {
   if (k === spotKey || !SPOTS[k]) return;
-  spotKey = k; SPOT = Object.assign({ tideStation: "9410230", buoy: "46225" }, SPOTS[k]);
+  spotKey = k; SPOT = SPOTS[k];
   store.set("waive.spot", k);
   try { history.replaceState(null, "", "#" + k); } catch (e) {}
-  renderSpot(); $("modeText").textContent = "Loading forecast…";
-  await loadAll(); selected = 0; refresh(); renderSources();
+  renderSpot(); refresh();
 }
 renderSpot();
 loadAll().then(() => {

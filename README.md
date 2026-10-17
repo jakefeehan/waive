@@ -10,6 +10,7 @@ Go to https://jakefeehan.github.io/waive on any phone or computer. It pulls live
 - 72-hour chart: rating bars, surf height, sets, tide with highs and lows, wind arrows.
 - Animated side view of the waves to scale next to a 5'10" surfer, with set timing.
 - Swell window compass showing which swell directions reach Tourmaline.
+- A clickable map of the Pacific Beach breaks (Tourmaline, Law Street, Diamond Street, Crystal Pier, Pacific Beach Drive) with each break's rating and surf size for the selected hour.
 - A table showing which data sources loaded.
 
 ## Free data sources
