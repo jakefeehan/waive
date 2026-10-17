@@ -378,6 +378,95 @@ footer .free b { color: var(--sea); }
 .sheethead button { width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--surface-2); color: var(--ink); font-size: 1.4rem; cursor: pointer; line-height: 1; }
 @media (max-width: 760px) { .sheet { margin: auto auto 0; width: 100%; max-width: 100%; border-radius: 26px 26px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); } }
 @media (prefers-reduced-motion: reduce) { .tabpanel, .sheet[open] { animation: none; } }
+
+/* answer sits at the very top, compact, so the map and forecast stay on screen under the pickers */
+header.top > .answer { order: 0; }
+.answer.compact { padding: 14px 18px; border-radius: 20px; gap: 14px; }
+.answer.compact .badge { width: 58px; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.16); }
+.answer.compact .badge b { font-size: 1.35rem; } .answer.compact .badge i { display: none; }
+.answer.compact .eyebrow { display: none; }
+.answer.compact .line { font-size: clamp(1.05rem, 3.2vw, 1.6rem); line-height: 1.15; }
+.answer.compact .subline { margin: 4px 0 0; font-size: 0.9rem; }
+.answer[hidden] { display: none; }
+@media (max-width: 520px) { .answer.compact { flex-direction: row; align-items: center; } .answer.compact .badge { width: 52px; } }
+.wrap { gap: 18px; } .tabpanel { gap: clamp(26px, 5vw, 38px); }
+
+/* ---- compact desktop header so the map and the forecast fit on one screen ---- */
+@media (max-width: 899px) {
+  .duo .minimap-sec { order: -1; }
+  .duo { display: flex; flex-direction: column; }
+  .duo > section:first-child { order: 2; }
+  .duo > section:last-child { order: 1; }
+}
+@media (min-width: 900px) {
+  .wrap { padding-top: 10px; gap: 14px; }
+  header.top { gap: 12px; }
+  .toprow { min-height: 52px; }
+  .pickers { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  .pickers .skillrow { gap: 10px; }
+  .pickers .boards button { padding: 7px 12px; }
+  .fine { margin-left: 0; }
+  .duo { gap: 22px; }
+  .duo .sechead p { display: none; }
+  .duo .sechead { gap: 0; }
+  .rank { gap: 8px; }
+  .rankrow { padding: 9px 14px; border-radius: 16px; }
+  .rankrow .tile { min-width: 54px; padding: 6px 0; font-size: 1.15rem; border-radius: 13px; }
+  .rankrow .who b { font-size: 1.02rem; } .rankrow .who .muted { font-size: .84rem; }
+  #miniMap { max-height: 318px; }
+  .tabpanel { gap: 24px; }
+  h2 { font-size: 1.5rem; }
+  .sechead:has(.linkbtn) { align-items: center; }
+  .pickers .boards button { padding: 6px 10px; border-radius: 12px; font-size: .86rem; }
+  .pickers .boards button small { font-size: .68rem; }
+  .pickers .boards.skills button { padding: 6px 12px; font-size: .84rem; }
+  #tab-today section[aria-label="Forecast"] .sechead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  #tab-today section[aria-label="Forecast"] .sechead p { max-width: none; font-size: .9rem; }
+}
+
+/* ---- one-screen Today: slim pickers, one-line answer, map + ranking, 24-hour strip ---- */
+@media (min-width: 1100px) { .tabs { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; } }
+.strip { padding: 14px 12px 8px; }
+.bars { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 120px; }
+.sbar { display: grid; grid-template-rows: 1fr auto; justify-items: center; height: 100%; padding: 0; border: none; background: none; cursor: pointer; position: relative; min-width: 0; }
+.sbar i { align-self: end; width: 100%; border-radius: 5px 5px 2px 2px; display: block; transition: height .3s ease, opacity .2s; }
+.sbar.dark i { opacity: .45; }
+.sbar span { font: 500 0.64rem var(--font-data); color: var(--ink-2); height: 16px; line-height: 16px; white-space: nowrap; }
+.sbar.sel::before { content: ""; position: absolute; inset: -4px -2px 14px; border-radius: 8px; box-shadow: 0 0 0 2px var(--ink); pointer-events: none; }
+.sbar:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; border-radius: 6px; }
+.more { justify-self: start; font: 600 1rem var(--font-body); color: var(--sea); background: none; border: none; padding: 4px 0; cursor: pointer; text-align: left; }
+.more:hover { text-decoration: underline; }
+.tabs button span { white-space: nowrap; }
+@media (max-width: 760px) { .tabs button { font-size: 0.66rem; padding-inline: 2px; } .tabs button svg { width: 22px; height: 22px; } }
+@media (max-width: 899px) {
+  .wrap { gap: 12px; padding-top: 10px; }
+  .toprow .logo img { height: 34px; }
+  header.top { gap: 8px; }
+  .spots button { padding: 6px 13px; font-size: .86rem; }
+  .pickers { gap: 6px; }
+  .pickers .boards button { padding: 6px 12px; border-radius: 999px; font-size: .86rem; }
+  .pickers .boards button small { display: none; }
+  .boards.skills { gap: 5px; } .boards.skills button { padding: 5px 10px; font-size: .8rem; }
+  .skillrow { flex-wrap: nowrap; gap: 6px; } .fine { padding: 4px 11px; font-size: .8rem; margin-left: auto; white-space: nowrap; }
+  .answer.compact { padding: 10px 14px; border-radius: 18px; gap: 12px; }
+  .answer.compact .badge { width: 46px; } .answer.compact .badge b { font-size: 1.1rem; }
+  .answer.compact .line { font-size: 1.05rem; } .answer.compact .subline { font-size: .8rem; margin-top: 2px; }
+  .tabpanel { gap: 18px; }
+  .sechead h2 { font-size: 1.2rem; }
+  .duo .sechead { display: none; }
+  .duo { display: grid !important; grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr); gap: 10px; align-items: stretch; }
+  .duo > section { order: 0 !important; } .duo > section:last-child { order: -1 !important; }
+  .minimap { height: 100%; } #miniMap { max-height: none; height: 100%; }
+  .rank { gap: 6px; }
+  .rankrow .pos { display: none; } .rankrow { grid-template-columns: 1fr auto !important; }
+  .rankrow .who b { font-size: .86rem; line-height: 1.15; }
+  .rankrow { padding: 7px 12px; border-radius: 14px; grid-template-columns: 20px 1fr auto; gap: 10px; }
+  .rankrow .who b { font-size: .98rem; } .rankrow .who .muted { font-size: .78rem; }
+  .rankrow .tile { min-width: 48px; padding: 5px 0; font-size: 1.05rem; border-radius: 11px; }
+  .bars { height: 84px; }
+  .stripsec .sechead { display: none; }
+  .strip { padding: 10px 8px 4px; }
+}
 </style>
 </head>
 <body>
@@ -396,12 +485,14 @@ footer .free b { color: var(--sea); }
         <button type="button" class="fine" id="tuneBtn" aria-haspopup="dialog">Fine-tune</button>
       </div>
     </div>
+    <section class="answer compact" id="answer" aria-live="polite" aria-label="Best surf right now"><p class="muted">Loading the forecast…</p></section>
   </header>
 
   <div id="banner" class="banner" hidden></div>
 
 <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
     <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
+    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
     <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
     <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
     <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
@@ -410,20 +501,27 @@ footer .free b { color: var(--sea); }
 
   <main>
   <div class="tabpanel" id="tab-today" role="tabpanel" aria-labelledby="tabbtn-today">
-    <section class="answer" id="answer" aria-live="polite" aria-label="Best surf right now"><p class="muted">Loading the forecast…</p></section>
-
     <div class="duo">
     <section aria-label="All breaks ranked">
       <div class="sechead"><h2>All breaks</h2><p class="muted" id="rankSub">Ranked for your board.</p></div>
       <ol class="rank" id="rank"></ol>
     </section>
 
-    <section aria-label="Map overview">
+    <section aria-label="Map overview" class="minimap-sec">
       <div class="sechead"><h2>Map</h2><button type="button" class="linkbtn" data-goto="map">Open the full map →</button></div>
       <div class="panel minimap"><svg id="miniMap" role="group" aria-label="Map of the breaks. Tap one to select it."></svg></div>
     </section>
     </div>
 
+
+    <section aria-label="Next 24 hours" class="stripsec">
+      <div class="sechead"><h2>Next 24 hours</h2><p class="muted" id="stripSub">Tap an hour to see it.</p></div>
+      <div class="panel strip" id="strip" role="group" aria-label="Rating for each of the next 24 hours"></div>
+      <button type="button" class="more" data-goto="details">See the full forecast, wave animation and details →</button>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tab-details" role="tabpanel" aria-labelledby="tabbtn-details" hidden>
     <section class="panel now" id="ratingPanel" aria-label="Rating">
       <div class="score">
         <span class="eyebrow" id="whenEyebrow">Right now</span>
@@ -437,6 +535,23 @@ footer .free b { color: var(--sea); }
         <div class="facts" id="facts"></div>
         <div class="reality" id="reality"></div>
       </div>
+    </section>
+
+    <section aria-label="Forecast">
+      <div class="sechead">
+        <h2>3 Day Forecast</h2>
+        <p class="muted">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
+      </div>
+    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--r1)"></i>Poor</span>
+      <span><i style="background:var(--r2)"></i>Poor to fair</span>
+      <span><i style="background:var(--r3)"></i>Fair</span>
+      <span><i style="background:var(--r4)"></i>Good</span>
+      <span><i style="background:var(--r5)"></i>Epic</span>
+      <span><i style="background:var(--night)"></i>Dark</span>
+    </div>
+
     </section>
 
     <section aria-label="What the waves look like">
@@ -459,23 +574,6 @@ footer .free b { color: var(--sea); }
         <svg id="compass" viewBox="0 0 240 240" role="img" aria-label="Swell and wind direction compared with the directions this break is open to"></svg>
         <p class="muted" style="margin:6px 0 0;font-size:.84rem" id="spotBlurb"></p>
       </div>
-    </div>
-
-    </section>
-
-    <section aria-label="Forecast">
-      <div class="sechead">
-        <h2>3 Day Forecast</h2>
-        <p class="muted">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
-      </div>
-    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
-    <div class="legend">
-      <span><i style="background:var(--r1)"></i>Poor</span>
-      <span><i style="background:var(--r2)"></i>Poor to fair</span>
-      <span><i style="background:var(--r3)"></i>Fair</span>
-      <span><i style="background:var(--r4)"></i>Good</span>
-      <span><i style="background:var(--r5)"></i>Epic</span>
-      <span><i style="background:var(--night)"></i>Dark</span>
     </div>
 
     </section>
@@ -1367,8 +1465,8 @@ $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textCont
 $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 4 ? 10 : 1; $("simSpeed").textContent = `Speed: ${sim.speed}×${sim.speed === 1 ? " (real time)" : ""}`; };
 
 /* ---------- wiring ---------- */
-function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); renderMini(); buildSeq(); }
-function refresh() { rescore(); renderNow(); renderReality(); renderScorecard(); renderToday(); renderDays(); renderTimeline(); renderCompass(); renderMap(); renderMini(); buildSeq(); }
+function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); renderMini(); renderStrip(); buildSeq(); }
+function refresh() { rescore(); renderNow(); renderReality(); renderScorecard(); renderToday(); renderDays(); renderTimeline(); renderCompass(); renderMap(); renderMini(); renderStrip(); buildSeq(); }
 
 renderBoards(); renderTune();
 /* ---------- map ---------- */
@@ -1544,7 +1642,7 @@ function renderMap() {
       <li>Garnet Ave between Mission Blvd and Fanuel St, plus parts of Cass, Bayard and Hornblend, got meters in a city pilot that began in November 2023: 10 am to 8 pm, $1.25 an hour, 2-hour limit, free on Sundays <a href="https://digital-release.fox5sandiego.com/news/local-news/pacific-beach-parking-meters-now-active/amp/" target="_blank" rel="noopener">(Fox 5)</a>. Rules can change, so read the posted signs.</li>
       <li>Parking a few blocks inland and walking is usually easier than circling near Crystal Pier, Grand Ave and Mission Blvd <a href="https://parkmobile.io/parking/locations/ca/san-diego-parking/neighbourhood/pacific-beach" target="_blank" rel="noopener">(Parkmobile)</a>.</li></ul></details>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
-  $("toRating").onclick = () => { showTab("today"); $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  $("toRating").onclick = () => { showTab("details"); $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
 }
 $("towerToggle").checked = showTowers;
 $("towerToggle").onchange = () => { showTowers = $("towerToggle").checked; store.set("waive.towers", showTowers); renderMap(); };
@@ -1565,10 +1663,11 @@ function switchSpot(k) {
   renderSpot(); refresh();
 }
 /* ---------- tabs, fine-tune sheet, Today screen ---------- */
-const TABS = ["today", "forecast", "map", "accuracy", "about"];
+const TABS = ["today", "details", "forecast", "map", "accuracy", "about"];
 function showTab(name, focus) {
   if (!TABS.includes(name)) name = "today";
   for (const t of TABS) { const on = t === name; $("tab-" + t).hidden = !on; const b = $("tabbtn-" + t); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; }
+  $("answer").hidden = name !== "today";
   window.scrollTo({ top: 0 });
   if (name === "map") { applyView(); renderMap(); }
   window.dispatchEvent(new Event("resize"));
@@ -1629,7 +1728,8 @@ function renderMini() {
   const coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1], land = `${coast} L${MAP.W + 40},${bot[1]} L${MAP.W + 40},${top[1]} Z`;
   const pts = Object.values(SPOTS).map(sp => mapXY(sp.lat, sp.lon)), ys = pts.map(p => p[1]);
   const y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
-  const x0 = Math.min(...Object.values(SPOTS).map((sp, i) => pts[i][0] - 30 - (Math.max(sp.name.length * 8.4, 64) + 20))) - 14, x1 = Math.max(...pts.map(p => p[0])) + 90;
+  const narrow = matchMedia("(max-width: 899px)").matches;
+  const x0 = narrow ? Math.min(...pts.map(p => p[0])) - 90 : Math.min(...Object.values(SPOTS).map((sp, i) => pts[i][0] - 30 - (Math.max(sp.name.length * 8.4, 64) + 20))) - 14, x1 = Math.max(...pts.map(p => p[0])) + (narrow ? 70 : 90);
   svg.setAttribute("viewBox", `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
   let g = `<defs><linearGradient id="wg2" x1="0" x2="1"><stop offset="0" style="stop-color:var(--water-deep)"/><stop offset="1" style="stop-color:var(--water)"/></linearGradient></defs>
     <rect x="-60" y="${y0 - 60}" width="${MAP.W + 120}" height="${y1 - y0 + 120}" fill="url(#wg2)"/>`;
@@ -1637,6 +1737,7 @@ function renderMini() {
   g += `<path d="${land}" fill="var(--land)"/><path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="17" stroke-linecap="round"/><path d="${coast}" transform="translate(-8,0)" fill="none" stroke="var(--wave)" stroke-opacity="0.75" stroke-width="2.2" stroke-linecap="round"/>`;
   for (const [k, sp] of Object.entries(SPOTS)) {
     const r = spotNow(k), rc = ratingClass(r.rating), [x, y] = mapXY(sp.lat, sp.lon), sel = k === spotKey, tw = Math.max(sp.name.length * 8.4, 64) + 20;
+    if (narrow) { g += `<g class="pin" tabindex="0" role="button" data-k="${k}" aria-label="${sp.name}, rated ${r.rating.toFixed(1)} out of 10, ${rc.label}" aria-pressed="${sel}"><circle class="hit" cx="${x}" cy="${y}" r="40" fill="transparent"/>${sel ? `<circle cx="${x}" cy="${y}" r="42" fill="none" stroke="var(--ink)" stroke-width="5"/>` : ""}<circle class="dot" cx="${x}" cy="${y}" r="34" fill="var(${rc.c})" stroke="var(--surface)" stroke-width="5"/><text class="rt" x="${x}" y="${y + 10}" style="font-size:28px">${r.rating.toFixed(1)}</text></g>`; continue; }
     g += `<g class="pin" tabindex="0" role="button" data-k="${k}" aria-label="${sp.name}, rated ${r.rating.toFixed(1)} out of 10, ${rc.label}" aria-pressed="${sel}">
       <rect x="${x - 30 - tw}" y="${y - 20}" width="${tw}" height="40" rx="12" fill="var(--surface)" fill-opacity="0.96" stroke="${sel ? "var(--ink)" : "none"}" stroke-width="2.2"/>
       <text class="nm${sel ? " sel" : ""}" x="${x - 40}" y="${y - 3}" text-anchor="end">${sp.name}</text>
@@ -1650,6 +1751,20 @@ function renderMini() {
   svg.querySelectorAll(".pin").forEach(pin => { pin.onclick = () => switchSpot(pin.dataset.k); pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } }; });
 }
 
+// The next 24 hours as a row of colored bars (rating), one tap per hour.
+function renderStrip() {
+  const el = $("strip"); if (!SCORED.length) return;
+  const n = Math.min(24, SCORED.length);
+  let h = `<div class="bars">`;
+  for (let i = 0; i < n; i++) {
+    const x = SCORED[i], c = ratingClass(x.rating), lab = hourLabel(x.t), sun = sunTimes(Date.UTC(la(x.t).y, la(x.t).m - 1, la(x.t).d, 19, 30)), dark = x.t + HOUR <= sun.rise || x.t >= sun.set;
+    h += `<button type="button" class="sbar${i === selected ? " sel" : ""}${dark ? " dark" : ""}" data-i="${i}" aria-label="${lab}, rated ${x.rating.toFixed(1)}, ${c.label}" title="${lab}: ${x.rating.toFixed(1)}/10"><i style="height:${Math.max(8, x.rating * 10)}%;background:var(${c.c})"></i><span>${i % 3 === 0 ? lab.replace(":00", "").replace(" ", "").toLowerCase() : ""}</span></button>`;
+  }
+  el.innerHTML = h + `</div>`;
+  el.querySelectorAll(".sbar").forEach(b => b.onclick = () => select(+b.dataset.i));
+  const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Tap a bar for another hour.` : "";
+}
+matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
 renderSpot();
 loadScorecard();
 loadAll().then(() => {
