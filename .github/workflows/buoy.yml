@@ -38,4 +38,4 @@ jobs:
           git config user.name "waive-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/buoy.json
-          git diff --cached --quiet || (git commit -m "Update buoy reading" && git push)
+          git diff --cached --quiet || (git commit -m "Update buoy reading" && git pull --rebase -q && git push)

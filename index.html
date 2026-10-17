@@ -69,6 +69,9 @@ section { display: grid; gap: 14px; min-width: 0; }
 .bestlines li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); cursor: pointer; font-size: 0.95rem; }
 .bestlines li b { font-weight: 600; } .bestlines li .dname { color: var(--ink-2); min-width: 7.5em; }
 .bestlines li.no { color: var(--ink-2); cursor: default; }
+.score-head { margin: 0 0 4px; font: 600 1.15rem var(--font-body); } .score-head b { color: var(--sea); }
+.score-table { overflow-x: auto; } .score-table table { min-width: 0; margin-top: 10px; }
+.score-table td.num, .score-table th.num { text-align: right; white-space: nowrap; }
 header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .brand .logo { font: 700 1.1rem var(--font-display); color: var(--sea); letter-spacing: -0.01em; }
@@ -335,6 +338,14 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
         <p class="muted" style="margin:6px 0 0;font-size:.84rem" id="spotBlurb"></p>
       </div>
     </div>
+  </section>
+
+  <section aria-label="Accuracy scorecard" id="scorecard">
+    <div>
+      <h2>Accuracy scorecard</h2>
+      <p class="muted" style="margin:4px 0 0">Every morning waive saves its wave forecast. Later it is checked against what the Torrey Pines buoy actually recorded. This is the running score.</p>
+    </div>
+    <div class="panel" id="scoreBody"><p class="muted">Loading the scorecard…</p></div>
   </section>
 
   <section aria-label="Data sources">
@@ -865,6 +876,48 @@ function renderBestLines() {
   }).join("");
   $("bestLines").querySelectorAll("li[data-i]").forEach(li => li.onclick = () => select(+li.dataset.i));
 }
+/* ---------- accuracy scorecard ---------- */
+let SCOREDATA = null;
+async function loadScorecard() {
+  try {
+    const q = "?" + Math.floor(Date.now() / 3600000);
+    const [f, o] = await Promise.all([getJSON("data/forecast-log.json" + q), getJSON("data/observed.json" + q)]);
+    SCOREDATA = { snaps: f.snapshots || [], obs: new Map((o.obs || []).map(r => [r[0], r])) };
+  } catch (e) { SCOREDATA = { snaps: [], obs: new Map() }; }
+  renderScorecard();
+}
+// Compare each saved forecast hour (12 to 36 hours ahead, the "next-day" forecast) with the buoy reading for that hour.
+function scoreAccuracy(days = 30) {
+  const nowS = Date.now() / 1000, since = nowS - days * 86400, out = { n: 0, snaps: new Set(), height: 0, period: 0, dir: 0, nDir: 0, nPer: 0, spots: {} };
+  for (const k of Object.keys(SPOTS)) out.spots[k] = { n: 0, within: 0, err: 0 };
+  if (!SCOREDATA) return out;
+  for (const sn of SCOREDATA.snaps) for (const [t, wave, , per, dir] of sn.hours) {
+    const lead = (t - sn.issued) / 3600, ob = SCOREDATA.obs.get(t);
+    if (lead < 12 || lead > 36 || t < since || t > nowS || !ob || ob[1] == null || wave == null) continue;
+    out.n++; out.snaps.add(sn.day);
+    if (Math.abs(mToFt(wave) - mToFt(ob[1])) <= 1) out.height++;
+    if (per != null && ob[2] != null) { out.nPer++; if (Math.abs(per - ob[2]) <= 2) out.period++; }
+    if (dir != null && ob[3] != null) { out.nDir++; if (Math.abs(((dir - ob[3] + 540) % 360) - 180) <= 30) out.dir++; }
+    for (const k of Object.keys(SPOTS)) atSpot(k, () => {
+      const fc = faceFt(wave, per, dir), ac = faceFt(ob[1], ob[2], ob[3]), e = Math.abs(fc - ac), r = out.spots[k];
+      r.n++; r.err += e; if (e <= 1) r.within++;
+    });
+  }
+  return out;
+}
+function renderScorecard() {
+  const el = $("scoreBody"); if (!el || !SCOREDATA) return;
+  const r = scoreAccuracy(), pct = (a, b) => b ? Math.round(100 * a / b) + "%" : "–", days = r.snaps.size;
+  if (r.n < 16) {
+    el.innerHTML = `<p class="score-head">Collecting data</p><p class="muted" style="margin:0">The scorecard starts once waive has saved a couple of days of forecasts and compared them with the buoy. So far it has ${r.n} comparison${r.n === 1 ? "" : "s"}${days ? ` from ${days} day${days === 1 ? "" : "s"}` : ""}. Check back in a day or two.</p>`;
+    return;
+  }
+  const mine = r.spots[spotKey], window = days >= 30 ? "Last 30 days" : `Last ${days} day${days === 1 ? "" : "s"}`;
+  el.innerHTML = `<p class="score-head">${window}: our next-day height forecast at ${SPOT.name} was within 1 ft <b>${pct(mine.within, mine.n)}</b> of the time</p>
+    <p class="muted" style="margin:0 0 4px">Checked against the Torrey Pines buoy, ${r.n} hourly comparisons${days >= 30 ? "" : " so far (it grows every day until it covers 30)"}. The forecast is the one saved 12 to 36 hours before each hour.</p>
+    <div class="score-table"><table><thead><tr><th>Break</th><th class="num">Within 1 ft</th><th class="num">Average miss</th></tr></thead><tbody>${Object.entries(SPOTS).map(([k, sp]) => { const q = r.spots[k]; return `<tr><td>${sp.name}</td><td class="num">${pct(q.within, q.n)}</td><td class="num">${q.n ? (q.err / q.n).toFixed(1) + " ft" : "–"}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="muted" style="margin:10px 0 0;font-size:.86rem">Period within 2 s: ${pct(r.period, r.nPer)} of the time. Swell direction within 30°: ${pct(r.dir, r.nDir)}. Wave size at each break is worked out from the buoy reading with the same formula as the forecast, so the score shows how well the swell was predicted, not the exact height of a wave at the beach.</p>`;
+}
 function renderDays() {
   renderBestLines();
   const wins = computeWindows();
@@ -1119,7 +1172,7 @@ $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 
 
 /* ---------- wiring ---------- */
 function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
-function refresh() { rescore(); renderNow(); renderReality(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
+function refresh() { rescore(); renderNow(); renderReality(); renderScorecard(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
 
 renderBoards(); renderTune();
 /* ---------- map ---------- */
@@ -1316,6 +1369,7 @@ function switchSpot(k) {
   renderSpot(); refresh();
 }
 renderSpot();
+loadScorecard();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
   refresh(); renderSources(); requestAnimationFrame(loop);
