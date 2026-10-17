@@ -144,6 +144,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 /* now */
 .now { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 24px; align-items: start; }
 @media (max-width: 720px) { .now { grid-template-columns: 1fr; } }
+.now > div { min-width: 0; }
 .score { display: grid; gap: 6px; justify-items: start; }
 .score .big { font: 700 4.6rem/0.9 var(--font-display); letter-spacing: -0.03em; }
 .score .big small { font-size: 1.4rem; color: var(--ink-2); font-weight: 500; }
@@ -153,6 +154,12 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 .fact { display: grid; gap: 2px; min-width: 0; }
 .fact .v { font: 600 1.15rem var(--font-body); }
 .fact .s { font-size: 0.84rem; color: var(--ink-2); }
+.reality { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); display: grid; gap: 8px; }
+.reality h3 { margin: 0; font-size: 0.95rem; }
+.reality { min-width: 0; grid-template-columns: minmax(0, 1fr); } .reality th, .reality td { overflow-wrap: anywhere; }
+.reality table { border-collapse: collapse; width: 100%; min-width: 0; table-layout: fixed; font-size: 0.88rem; } .reality th { text-align: left; font-weight: 500; color: var(--ink-2); padding: 3px 8px 3px 0; } .reality td { padding: 3px 8px 3px 0; }
+.reality .flag { font-size: 0.88rem; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--sea); background: var(--surface); } .reality .flag.warn { border-left-color: var(--r2); } .reality .flag.bad { border-left-color: var(--r1); }
+.reality .s { font-size: 0.8rem; color: var(--ink-2); }
 .factors { display: grid; gap: 10px; margin-top: 18px; }
 .factor { display: grid; grid-template-columns: 80px 1fr 44px; gap: 10px; align-items: center; font-size: 0.88rem; }
 .factor .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
@@ -268,6 +275,7 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
     <div>
       <div class="facts" id="facts"></div>
       <div class="factors" id="factors"></div>
+      <div class="reality" id="reality"></div>
     </div>
   </section>
 
@@ -630,7 +638,7 @@ function ratingClass(r) {
 }
 
 /* ---------- state ---------- */
-let HOURS_DATA = [], HILO = [], BUOY = null, CAL = 1, selected = 0, startMs = 0, liveCount = 0;
+let HOURS_DATA = [], HILO = [], BUOY = null, RAWNOW = null, CAL = 1, selected = 0, startMs = 0, liveCount = 0;
 
 async function loadAll() {
   liveCount = 0; CAL = 1; BUOY = null;
@@ -665,6 +673,7 @@ async function loadAll() {
     if (nv.hourly && nv.hourly[t0] && nv.hourly[t0].mph != null) wd = Object.assign({}, nv.hourly[t0], wind && wind[t0] ? { gust: wind[t0].gust } : {});
     else if (wind && wind[t0]) wd = wind[t0];
     else { wd = sample.wind[t0]; usedSample.add("wind"); }
+    if (i === 0) RAWNOW = { hs: sw.wave != null ? sw.wave : sw.swell, period: sw.period, dir: sw.dir, sample: src === "" || sw === sample.marine[t0] };
     const cal = src === "marine" && BUOY ? 1 + (CAL - 1) * Math.exp(-i / 18) : 1;
     const hs = sw.swell * cal;
     HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, mph: wd.mph, windDir: wd.dir, gust: wd.gust, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
@@ -755,6 +764,37 @@ function renderNow() {
   $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
 }
 
+function renderReality() {
+  const el = $("reality"), F = RAWNOW, B = BUOY;
+  if (!F || !B || B.hs == null) { el.hidden = true; return; }
+  el.hidden = false;
+  const sample = B.sample || F.sample, age = Math.round((Date.now() - B.t) / 60000);
+  const fh = mToFt(F.hs), bh = mToFt(B.hs);
+  const dd = F.dir != null && B.mwd != null ? Math.abs(((F.dir - B.mwd + 540) % 360) - 180) : null;
+  const dp = F.period != null && B.dpd != null ? F.period - B.dpd : null;
+  const bigH = Math.abs(fh - bh) >= 1 && Math.abs(fh - bh) / Math.max(fh, bh) >= 0.3;
+  const smallH = Math.abs(fh - bh) >= 0.5 && Math.abs(fh - bh) / Math.max(fh, bh) >= 0.2;
+  const bigD = dd != null && dd > 45, bigP = dp != null && Math.abs(dp) >= 3;
+  const misses = [];
+  if (bigH || smallH) misses.push(`the buoy is reading ${bh > fh ? "bigger" : "smaller"} (${bh.toFixed(1)} ft vs ${fh.toFixed(1)} ft)`);
+  if (bigP) misses.push(`the period is ${Math.abs(dp).toFixed(0)} s ${dp > 0 ? "longer" : "shorter"} on the forecast`);
+  if (bigD) misses.push(`the swell direction is ${Math.round(dd)}° apart`);
+  let note, cls = "";
+  if (sample) note = "These are sample numbers, so this is just a preview of how the check looks.";
+  else if (age > 180) { note = `The buoy reading is ${Math.round(age / 60)} hours old, so this check may be out of date.`; cls = "warn"; }
+  else if (bigH || bigD) { note = `Forecast and buoy disagree right now: ${misses.join("; ")}. Trust the buoy more for the next few hours.`; cls = "bad"; }
+  else if (smallH || bigP) { note = `Close, but not exact: ${misses.join("; ")}.`; cls = "warn"; }
+  else note = "Forecast and buoy agree, so today's numbers look trustworthy.";
+  const fm = (v, d) => v == null ? "–" : d(v);
+  const wtime = B.t ? `${fmtDay.format(new Date(B.t))}, ${fmtTime.format(new Date(B.t))}` : "";
+  el.innerHTML = `<h3>Forecast vs. reality</h3>
+    <table><tr><th></th><th>Forecast now</th><th>Torrey Pines buoy</th></tr>
+      <tr><th>Wave height</th><td class="num">${fh.toFixed(1)} ft</td><td class="num">${bh.toFixed(1)} ft</td></tr>
+      <tr><th>Period</th><td class="num">${fm(F.period, v => v.toFixed(0) + " s")}</td><td class="num">${fm(B.dpd, v => v.toFixed(0) + " s")}</td></tr>
+      <tr><th>Direction</th><td class="num">${fm(F.dir, v => degToCompass(v) + " " + Math.round(v) + "°")}</td><td class="num">${fm(B.mwd, v => degToCompass(v) + " " + Math.round(v) + "°")}</td></tr></table>
+    <div class="flag ${cls}">${note}</div>
+    <span class="s">${sample ? "Sample reading" : `Buoy 46225 measured ${wtime}`}. The buoy sits offshore, so it shows the swell before it reaches ${SPOT.name}; at the beach that forecast works out to ${Math.max(0, SCORED[0].face - 0.5).toFixed(0)}–${Math.ceil(SCORED[0].face + 0.5)} ft.</span>`;
+}
 function computeWindows() {
   const byDay = new Map();
   SCORED.forEach((h, i) => { const k = la(h.t).key; if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(i); });
@@ -1025,8 +1065,8 @@ $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textCont
 $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 4 ? 10 : 1; $("simSpeed").textContent = `Speed: ${sim.speed}×${sim.speed === 1 ? " (real time)" : ""}`; };
 
 /* ---------- wiring ---------- */
-function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
-function refresh() { rescore(); renderNow(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
+function select(i) { selected = clamp(i, 0, SCORED.length - 1); renderNow(); renderReality(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
+function refresh() { rescore(); renderNow(); renderReality(); renderDays(); renderTimeline(); renderCompass(); renderMap(); buildSeq(); }
 
 renderBoards(); renderTune();
 /* ---------- map ---------- */
