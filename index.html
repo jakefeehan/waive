@@ -98,7 +98,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 .fact .v { font: 600 1.15rem var(--font-body); }
 .fact .s { font-size: 0.84rem; color: var(--ink-2); }
 .factors { display: grid; gap: 10px; margin-top: 18px; }
-.factor { display: grid; grid-template-columns: 72px 1fr 44px; gap: 10px; align-items: center; font-size: 0.88rem; }
+.factor { display: grid; grid-template-columns: 80px 1fr 44px; gap: 10px; align-items: center; font-size: 0.88rem; }
 .factor .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
 .factor .bar i { display: block; height: 100%; background: var(--sea); border-radius: 4px; }
 .factor .why { grid-column: 2 / 4; margin-top: -6px; color: var(--ink-2); font-size: 0.82rem; }
@@ -239,7 +239,7 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
   <section aria-label="How the rating works">
     <h2>How the rating works</h2>
     <div class="prose">
-      <p>Every hour gets four scores from 0 to 1: <b>size</b> (is the wave height in your board's sweet spot), <b>wind</b> (offshore and glassy is best, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), and <b>tide</b> (Tourmaline's reef and rocks like mid to high tide). They are multiplied together, with size counting most, then scaled to 10.</p>
+      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (Tourmaline's reef and rocks like mid to high tide), and <b>direction</b> (how open Tourmaline is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
       <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open Tourmaline is to that swell). When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
       <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
     </div>
@@ -449,27 +449,38 @@ function windKind(mph, dir) {
   if (rel < 0.7) return "Cross-onshore"; return "Onshore";
 }
 function scoreHour(h, P) {
-  const f = h.face;
+  // Strict scale: every factor peaks only at its sweet spot, and the product is curved so 10 needs everything perfect.
+  const f = h.face, sweet = P.size[0] + 0.6 * (P.size[1] - P.size[0]);
   let size;
-  if (f >= P.size[0] && f <= P.size[1]) size = 1;
-  else if (f < P.size[0]) size = clamp((f - P.ok[0]) / (P.size[0] - P.ok[0]), 0.02, 1);
-  else size = clamp((P.ok[1] - f) / (P.ok[1] - P.size[1]), 0.02, 1);
-  let wind = 1;
-  if (h.mph != null && h.mph >= 3.5) {
+  if (f >= P.size[0] && f <= P.size[1]) { const half = f < sweet ? sweet - P.size[0] : P.size[1] - sweet; size = 1 - 0.25 * Math.pow((f - sweet) / (half || 1), 2); }
+  else if (f < P.size[0]) size = clamp(0.75 * (f - P.ok[0]) / (P.size[0] - P.ok[0]), 0.02, 0.75);
+  else size = clamp(0.75 * (P.ok[1] - f) / (P.ok[1] - P.size[1]), 0.02, 0.75);
+  let wind = 0.95;
+  if (h.mph != null) {
     const a = (h.windDir - SPOT.facing) * Math.PI / 180;
     const on = h.mph * Math.cos(a), cross = Math.abs(h.mph * Math.sin(a));
-    const eff = Math.max(0, on) + 0.4 * cross + Math.max(0, -on - 18) * 0.5;
-    wind = clamp(1 - (eff - 2) / (P.wind * 1.6), 0.05, 1);
+    if (h.mph < 2) wind = 0.97;
+    else if (on < 0 && -on >= 2 && h.mph <= 12 && cross < -on) wind = 1;
+    else {
+      const eff = Math.max(0, on) + 0.5 * cross + Math.max(0, -on - 15) * 0.6;
+      wind = clamp(0.95 - eff / (P.wind * 1.5), 0.05, 0.95);
+    }
   }
-  const period = clamp(0.35 + 0.65 * ((h.period || 8) - (P.period - 5)) / 5, 0.2, 1);
-  let tide = 1;
-  if (h.tide != null) { const d = h.tide < P.tide[0] ? P.tide[0] - h.tide : h.tide > P.tide[1] ? h.tide - P.tide[1] : 0; tide = clamp(1 - 0.3 * d, 0.3, 1); }
+  const period = clamp(0.5 + 0.5 * ((h.period || 8) - (P.period - 4)) / 8, 0.2, 1);
+  let tide = 0.9;
+  if (h.tide != null) {
+    const mid = (P.tide[0] + P.tide[1]) / 2, half = (P.tide[1] - P.tide[0]) / 2 || 1;
+    const d = Math.abs(h.tide - mid);
+    tide = d <= half ? 1 - 0.15 * Math.pow(d / half, 2) : clamp(0.85 - 0.25 * (d - half), 0.3, 0.85);
+  }
+  const direction = 0.6 + 0.4 * exposure(h.dir);
   const w = P.w;
-  const rating = 10 * Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide);
-  return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide } };
+  const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide) * Math.pow(direction, 0.5);
+  const rating = 10 * Math.pow(p, 2);
+  return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide, direction } };
 }
 function ratingClass(r) {
-  if (r >= 8) return { label: "Epic", c: "--r5" };
+  if (r >= 8.5) return { label: "Epic", c: "--r5" };
   if (r >= 6.5) return { label: "Good", c: "--r4" };
   if (r >= 5) return { label: "Fair", c: "--r3" };
   if (r >= 3) return { label: "Poor to fair", c: "--r2" };
@@ -588,12 +599,13 @@ function renderNow() {
   $("facts").innerHTML = facts.map(([k, v, s]) => `<div class="fact"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`).join("");
   const P = profile();
   const why = {
-    size: h.sc.size >= 0.99 ? `${h.face.toFixed(1)} ft is inside your ${P.size[0]}–${P.size[1]} ft range` : h.face < P.size[0] ? `${h.face.toFixed(1)} ft is smaller than your ${P.size[0]} ft minimum` : `${h.face.toFixed(1)} ft is bigger than your ${P.size[1]} ft maximum`,
+    size: h.sc.size >= 0.97 ? `${h.face.toFixed(1)} ft is right in this board's sweet spot` : h.face >= P.size[0] && h.face <= P.size[1] ? `${h.face.toFixed(1)} ft is in your ${P.size[0]}–${P.size[1]} ft range, best around ${(P.size[0] + 0.6 * (P.size[1] - P.size[0])).toFixed(1)} ft` : h.face < P.size[0] ? `${h.face.toFixed(1)} ft is smaller than your ${P.size[0]} ft minimum` : `${h.face.toFixed(1)} ft is bigger than your ${P.size[1]} ft maximum`,
     wind: windKind(h.mph, h.windDir) + (h.mph != null ? ` at ${Math.round(h.mph)} mph` : ""),
-    period: `${h.period ? h.period.toFixed(0) : "?"} s period; this board likes ${P.period} s or more`,
-    tide: h.tide == null ? "No tide data" : h.tide < P.tide[0] ? `Low for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : `In your ${P.tide[0]}–${P.tide[1]} ft range`,
+    period: `${h.period ? h.period.toFixed(0) : "?"} s period; perfect is ${P.period + 4} s or more for this board`,
+    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${Math.round(exposure(h.dir) * 100)}% open to Tourmaline`,
+    tide: h.tide == null ? "No tide data" : h.tide < P.tide[0] ? `Low for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : `In your ${P.tide[0]}–${P.tide[1]} ft range, best near ${((P.tide[0] + P.tide[1]) / 2).toFixed(1)} ft`,
   };
-  $("factors").innerHTML = ["size", "wind", "period", "tide"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
+  $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
 }
 
 function computeWindows() {
