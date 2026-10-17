@@ -65,6 +65,10 @@ section { display: grid; gap: 14px; min-width: 0; }
 
 /* header */
 .free { margin: 0; font-size: 0.92rem; color: var(--ink-2); } .free b { color: var(--sea); font-weight: 600; }
+.bestlines { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bestlines li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); cursor: pointer; font-size: 0.95rem; }
+.bestlines li b { font-weight: 600; } .bestlines li .dname { color: var(--ink-2); min-width: 7.5em; }
+.bestlines li.no { color: var(--ink-2); cursor: default; }
 header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .brand .logo { font: 700 1.1rem var(--font-display); color: var(--sea); letter-spacing: -0.01em; }
@@ -298,6 +302,7 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
       <h2>3 Day Forecast</h2>
       <p class="muted" style="margin:4px 0 0">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
     </div>
+    <ul class="bestlines" id="bestLines"></ul>
     <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
     <div class="legend">
       <span><i style="background:var(--r1)"></i>Poor</span>
@@ -563,18 +568,21 @@ async function loadBuoy() {
   try {
     const j = await getJSON("data/buoy.json?" + Math.floor(Date.now() / 600000));
     const t = Date.parse(j.t);
-    if (j.hs != null && Date.now() - t < 6 * HOUR) return Object.assign({}, j, { t });
+    if (j.hs != null && Date.now() - t < 6 * HOUR) return Object.assign({}, j, { t, wtmpT: j.wtmpT ? Date.parse(j.wtmpT) : (j.wtmpC != null ? t : null) });
   } catch (e) {}
   const txt = await getText(`https://www.ndbc.noaa.gov/data/realtime2/${REGION.buoy}.txt`);
+  let out = null, wt = null;
   for (const line of txt.split("\n")) {
     if (!line || line[0] === "#") continue;
     const c = line.trim().split(/\s+/);
     const t = Date.UTC(+c[0], +c[1] - 1, +c[2], +c[3], +c[4]);
     const n = v => (v === "MM" ? null : +v);
-    if (n(c[8]) == null) continue;
-    return { t, hs: n(c[8]), dpd: n(c[9]), mwd: n(c[11]), wtmpC: n(c[14]) };
+    if (!out && n(c[8]) != null) out = { t, hs: n(c[8]), dpd: n(c[9]), mwd: n(c[11]) };
+    if (!wt && n(c[14]) != null) wt = { wtmpC: n(c[14]), wtmpT: t };
+    if (out && wt) break;
   }
-  throw new Error("no rows");
+  if (!out) throw new Error("no rows");
+  return Object.assign(out, wt || { wtmpC: null, wtmpT: null });
 }
 
 /* sample data: shaped like a real mid-October day. Based on buoy 46225 on Oct 16 2026: 0.8 m at 14 s from 199°, water 22.9 °C. */
@@ -597,7 +605,7 @@ function sampleData(startMs) {
     if (b > a && b >= c) hilo.push({ t: ts[k], v: b, type: "H" });
     if (b < a && b <= c) hilo.push({ t: ts[k], v: b, type: "L" });
   }
-  return { marine, wind, tide: { hourly: tide, hilo }, buoy: { t: Date.UTC(2026, 9, 16, 13, 56), hs: 0.8, dpd: 14, mwd: 199, wtmpC: 22.9 } };
+  return { marine, wind, tide: { hourly: tide, hilo }, buoy: { t: Date.UTC(2026, 9, 16, 13, 56), hs: 0.8, dpd: 14, mwd: 199, wtmpC: 22.9, wtmpT: Date.UTC(2026, 9, 16, 13, 56) } };
 }
 
 /* ---------- model ---------- */
@@ -769,13 +777,15 @@ function renderNow() {
   const lab = $("scoreLabel"); lab.textContent = rc.label + " for a " + BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey); lab.style.background = css(rc.c);
   $("scoreWhen").textContent = fmtDay.format(new Date(h.t)) + ", " + hourLabel(h.t);
   const nh = nextHilo(h.t);
-  const water = BUOY && BUOY.wtmpC != null ? Math.round(BUOY.wtmpC * 9 / 5 + 32) + "°F" : "–";
+  // water temperature is the buoy's own measurement (never a model estimate), shown with the time it was taken
+  const water = BUOY && BUOY.wtmpC != null ? (BUOY.wtmpC * 9 / 5 + 32).toFixed(1) + "°F" : "–";
+  const waterSub = !BUOY || BUOY.wtmpC == null ? "Buoy has no reading right now" : BUOY.sample ? "Sample reading" : `Measured ${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))} by the Torrey Pines buoy (${Math.round(BUOY.wtmpC * 10) / 10}°C)`;
   const facts = [
     ["Surf", `${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft`, bodyScale(h.face) + `, sets to ${h.setFace.toFixed(0)} ft`],
     ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${Math.round(exposure(h.dir) * 100)}% open` : ""],
     ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "")],
     ["Tide", h.tide != null ? `${h.tide.toFixed(1)} ft ${tideTrend(h)}` : "–", nh ? `${nh.type === "H" ? "High" : "Low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""],
-    ["Water", water, BUOY && !BUOY.sample ? "Torrey Pines buoy, now" : "Sample reading"],
+    ["Water", water, waterSub],
     ["Buoy now", BUOY ? `${mToFt(BUOY.hs).toFixed(1)} ft @ ${BUOY.dpd} s` : "–", BUOY ? (BUOY.sample ? "Sample (Oct 16 reading)" : `${degToCompass(BUOY.mwd)} · ${fmtTime.format(new Date(BUOY.t))}`) : ""],
   ];
   $("facts").innerHTML = facts.map(([k, v, s]) => `<div class="fact"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`).join("");
@@ -839,7 +849,24 @@ function computeWindows() {
   }
   return out;
 }
+const WORTH_IT = 3; // rating at which a window counts as worth going for (below "Poor to fair" starts)
+function windowText(sh, eh) {
+  const p = h => { const x = la(h).h; return { n: x % 12 || 12, ap: x < 12 ? "am" : "pm" }; };
+  const a = p(sh), b = p(eh);
+  return a.ap === b.ap ? `${a.n} to ${b.n} ${b.ap}` : `${a.n} ${a.ap} to ${b.n} ${b.ap}`;
+}
+function renderBestLines() {
+  const board = BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey);
+  $("bestLines").innerHTML = computeWindows().map(w => {
+    const b = w.best, s = SCORED[b.idx[0]], e = SCORED[b.idx[b.idx.length - 1]], day = fmtWk.format(new Date(s.t));
+    if (b.avg < WORTH_IT) return `<li class="no" style="border-left-color:var(--r1)"><span class="dname">${day}</span><span>Nothing worth paddling out for. The best stretch is only ${b.avg.toFixed(1)}/10 on a ${board}.</span></li>`;
+    const rc = ratingClass(b.avg);
+    return `<li data-i="${b.idx[0]}" style="border-left-color:var(${rc.c})"><span class="dname">${day}</span><span><b>Best: ${windowText(s.t, e.t + HOUR)}, ${b.avg.toFixed(1)}/10</b> on a ${board}</span></li>`;
+  }).join("");
+  $("bestLines").querySelectorAll("li[data-i]").forEach(li => li.onclick = () => select(+li.dataset.i));
+}
 function renderDays() {
+  renderBestLines();
   const wins = computeWindows();
   const top = wins.reduce((a, w) => (!a || (w.best && w.best.avg > a.best.avg) ? w : a), null);
   $("days").innerHTML = wins.map(w => {

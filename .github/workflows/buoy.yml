@@ -15,16 +15,22 @@ jobs:
           curl -sSf -A "waive (github.com/jakefeehan/waive)" https://www.ndbc.noaa.gov/data/realtime2/46225.txt -o raw.txt
           python3 - <<'PY'
           import json
+          out = {}
           for line in open("raw.txt"):
               if line.startswith("#") or not line.strip():
                   continue
               c = line.split()
-              if c[8] == "MM":
-                  continue
               n = lambda v: None if v == "MM" else float(v)
-              out = {"t": "%s-%s-%sT%s:%s:00Z" % tuple(c[:5]), "hs": n(c[8]), "dpd": n(c[9]), "mwd": n(c[11]), "wtmpC": n(c[14])}
+              stamp = "%s-%s-%sT%s:%s:00Z" % tuple(c[:5])
+              # waves and water temperature are often reported at different times, so each keeps its own newest reading and time
+              if "t" not in out and c[8] != "MM":
+                  out.update({"t": stamp, "hs": n(c[8]), "dpd": n(c[9]), "mwd": n(c[11])})
+              if "wtmpT" not in out and c[14] != "MM":
+                  out.update({"wtmpC": n(c[14]), "wtmpT": stamp})
+              if "t" in out and "wtmpT" in out:
+                  break
+          if "t" in out:
               json.dump(out, open("data/buoy.json", "w"))
-              break
           PY
           rm raw.txt
       - name: Save if changed
