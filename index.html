@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>waive Tourmaline</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -66,7 +68,12 @@ section { display: grid; gap: 14px; min-width: 0; }
 /* header */
 header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.brand .logo { font: 700 1.1rem var(--font-display); color: var(--sea); letter-spacing: -0.01em; }
+.brand .logo { display: inline-flex; align-self: center; }
+.brand .logo img { height: 52px; width: auto; display: block; }
+.logo-dark { display: none !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-light { display: none !important; } :root:not([data-theme="light"]) .logo-dark { display: block !important; } }
+:root[data-theme="dark"] .logo-light { display: none !important; } :root[data-theme="dark"] .logo-dark { display: block !important; }
+@media (max-width: 520px) { .brand .logo img { height: 42px; } }
 .brand h1 { font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -0.02em; line-height: 1; }
 .spots { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
 .spots button { font: 600 0.85rem var(--font-body); padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
@@ -219,7 +226,7 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
 
   <header class="top">
     <div class="brand">
-      <span class="logo">waive</span>
+      <span class="logo"><img class="logo-light" src="assets/v2-light.svg" alt="Waive"><img class="logo-dark" src="assets/v2-dark.svg" alt="" aria-hidden="true"></span>
       <h1 id="spotName">Tourmaline</h1>
       <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
     </div>
