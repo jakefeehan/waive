@@ -83,6 +83,10 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 #map .nm { font: 600 15px var(--font-body); fill: var(--ink); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
 #map .nm.sel { font-weight: 700; }
 #map .sub { font: 500 12px var(--font-data); fill: var(--ink-2); paint-order: stroke; stroke: var(--water); stroke-width: 4px; stroke-linejoin: round; }
+#map .tw { font: 600 12px var(--font-data); fill: var(--ink); paint-order: stroke; stroke: var(--land); stroke-width: 3px; stroke-linejoin: round; }
+#map .tower { pointer-events: all; }
+.maptools { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 0.88rem; }
+.maptools input { accent-color: var(--sea); }
 #map .geo { font: 500 12px var(--font-data); letter-spacing: 0.12em; text-transform: uppercase; fill: var(--ink-2); }
 #map .geo.land { fill: var(--land-ink); }
 #mapCard h3 { font-size: 1.3rem; }
@@ -213,8 +217,9 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
       <h2>Pacific Beach breaks</h2>
       <p class="muted" style="margin:4px 0 0" id="mapSub">Tap a break to see its conditions.</p>
     </div>
+    <div class="maptools"><label for="towerToggle"><input type="checkbox" id="towerToggle" checked> Show lifeguard towers</label><span class="muted" id="towerKey">House icons are lifeguard towers. Filled ones are year-round stations.</span></div>
     <div class="mapgrid">
-      <div class="panel mappanel"><svg id="map" viewBox="0 0 600 580" role="group" aria-label="Map of the Pacific Beach breaks, north at the top"></svg></div>
+      <div class="panel mappanel"><svg id="map" viewBox="0 0 600 640" role="group" aria-label="Map of the Pacific Beach breaks, north at the top"></svg></div>
       <div class="panel" id="mapCard"></div>
     </div>
   </section>
@@ -352,7 +357,7 @@ const SPOTS = {
     exposure: [[200, 295, 1], [185, 200, 0.8], [295, 310, 0.8], [170, 185, 0.55], [310, 320, 0.55], [160, 170, 0.3], [320, 330, 0.3]],
     sizeFactor: 1.1, tideShift: -1, tideWeight: 1,
     type: "Sandbar beach break", bestSwell: "West-southwest", bestWind: "East-northeast (offshore)", bestTide: "Low to mid", reliability: "Fairly consistent",
-    blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell.",
+    blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell. The city's lifeguard list has no tower on Pacific Beach Drive itself; the closest are Tower 23 (Oliver St) and Tower 24 (Thomas Ave).",
     tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide and get soft and close out at high tide.",
   },
 };
@@ -991,10 +996,25 @@ function refresh() { rescore(); renderNow(); renderDays(); renderTimeline(); ren
 
 renderBoards(); renderTune();
 /* ---------- map ---------- */
-const MAP = { lat0: 32.8090, lon0: -117.2725, S: 240, W: 600, H: 580 };
+const MAP = { lat0: 32.8090, lon0: -117.2725, S: 240, W: 600, H: 640 };
 const mapXY = (lat, lon) => [(lon - MAP.lon0) * 93.58 * MAP.S, (MAP.lat0 - lat) * 110.95 * MAP.S];
-// Shoreline from Pacific Beach Point down to Mission Beach, drawn through the break positions (shifted a little east onto the sand).
-const COAST = [[32.8100, -117.2695], [32.8072, -117.2672], [32.8058, -117.2655], [32.8045, -117.2634], [32.8013, -117.2610], [32.7988, -117.2598], [32.7958, -117.2587], [32.7935, -117.2580], [32.7912, -117.2567], [32.7890, -117.2556], [32.7868, -117.2546]].map(([a, b]) => mapXY(a, b));
+// Shoreline from Pacific Beach Point down to Mission Beach, drawn just seaward of the lifeguard towers.
+// Lifeguard towers and stations: City of San Diego Fire-Rescue "Lifeguard Stations" layer (published through SANDAG). P = permanent station, S = seasonal tower.
+const TOWERS = [
+  { id: "28", label: "Tower 28", street: "Tourmaline St", lat: 32.80538, lon: -117.26225, perm: false },
+  { id: "27", label: "Tower 27", street: "Wilbur Ave", lat: 32.80378, lon: -117.26114, perm: false },
+  { id: "N", label: "North PB Station", street: "Diamond St and Missouri St", lat: 32.80094, lon: -117.25910, perm: true },
+  { id: "26", label: "Tower 26", street: "Diamond St", lat: 32.79895, lon: -117.25824, perm: false },
+  { id: "25", label: "Tower 25", street: "Hornblend St", lat: 32.79531, lon: -117.25677, perm: false },
+  { id: "PB", label: "Pacific Beach Station", street: "Grand Ave", lat: 32.79435, lon: -117.25623, perm: true },
+  { id: "24", label: "Tower 24", street: "Thomas Ave", lat: 32.79342, lon: -117.25625, perm: false },
+  { id: "23", label: "Tower 23", street: "Oliver St", lat: 32.79134, lon: -117.25559, perm: false },
+  { id: "22", label: "Tower 22", street: "Santa Rita Pl", lat: 32.78960, lon: -117.25520, perm: false },
+  { id: "21", label: "Tower 21", street: "San Raphael Pl", lat: 32.78698, lon: -117.25461, perm: false },
+];
+const distM = (lat1, lon1, lat2, lon2) => Math.hypot((lat1 - lat2) * 110950, (lon1 - lon2) * 93580);
+let showTowers = store.get("waive.towers") !== false;
+const COAST = [[32.8100, -117.2692], [32.8072, -117.2672], [32.8060, -117.2645], [32.8054, -117.2627], [32.8038, -117.2616], [32.8009, -117.2595], [32.7990, -117.2587], [32.7953, -117.2572], [32.7934, -117.2566], [32.7913, -117.2560], [32.7896, -117.2556], [32.7870, -117.2550], [32.7846, -117.2545], [32.7830, -117.2542]].map(([a, b]) => mapXY(a, b));
 function smooth(pts) {
   let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
   for (let i = 0; i < pts.length - 1; i++) {
@@ -1016,13 +1036,13 @@ function renderMap() {
   g += `<path d="${land}" fill="var(--land)"/>`;
   g += `<path d="${coast}" fill="none" stroke="var(--beach)" stroke-width="9" stroke-linecap="round"/>`;
   // Ocean Blvd runs along the sand; Garnet Ave leads inland from Crystal Pier
-  g += `<path d="${coast}" transform="translate(34,0)" fill="none" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/>`;
-  const [cx, cy] = mapXY(SPOTS.crystal.lat, -117.2587);
-  g += `<path d="M${cx + 34},${cy} L${MAP.W},${cy}" stroke="var(--line)" stroke-width="4"/>`;
+  g += `<path d="${coast}" transform="translate(58,0)" fill="none" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/>`;
+  const [cx, cy] = mapXY(32.7965, -117.2575);
+  g += `<path d="M${cx + 20},${cy} L${MAP.W},${cy}" stroke="var(--line)" stroke-width="4"/>`;
   g += `<text class="geo land" x="${MAP.W - 14}" y="${cy - 8}" text-anchor="end">Garnet Ave</text>`;
-  g += `<text class="geo land" x="${cx + 76}" y="${cy - 84}">Pacific Beach</text>`;
+  g += `<text class="geo land" x="${cx + 96}" y="${cy - 110}">Pacific Beach</text>`;
   g += `<text class="geo" x="26" y="${MAP.H - 24}">Pacific Ocean</text>`;
-  const [px0, py0] = mapXY(SPOTS.crystal.lat, SPOTS.crystal.lon), [px1] = mapXY(SPOTS.crystal.lat, -117.2587);
+  const [px0, py0] = mapXY(32.7965, SPOTS.crystal.lon), [px1] = mapXY(32.7965, -117.2573);
   g += `<path d="M${px1 + 2},${py0} L${px0 - 6},${py0}" stroke="var(--ink-2)" stroke-width="6" stroke-linecap="butt"/>`;
   // swell and wind arrows
   if (h0.dir != null) { const sx = 90, sy = 86; g += arrowAt(sx, sy, h0.dir + 180, 54, "var(--sea)"); g += `<text class="sub" x="${sx - 56}" y="${sy + 76}">Swell ${degToCompass(h0.dir)}</text><text class="sub" x="${sx - 56}" y="${sy + 92}">${mToFt(h0.hs).toFixed(1)} ft @ ${h0.period ? h0.period.toFixed(0) : "–"} s</text>`; }
@@ -1031,6 +1051,13 @@ function renderMap() {
   g += `<g transform="translate(560,40)"><path d="M0,-18 L7,8 L0,3 L-7,8 Z" fill="var(--ink)"/><text class="geo" x="0" y="26" text-anchor="middle" style="letter-spacing:0">N</text></g>`;
   const m500 = 0.5 * MAP.S;
   g += `<g transform="translate(${MAP.W - 24 - m500},${MAP.H - 28})"><path d="M0,0 H${m500} M0,-5 V5 M${m500},-5 V5" stroke="var(--ink-2)" stroke-width="2"/><text class="geo" x="${m500 / 2}" y="-10" text-anchor="middle" style="letter-spacing:0">500 m</text></g>`;
+  // lifeguard towers
+  if (showTowers) for (const t of TOWERS) {
+    const [x, y] = mapXY(t.lat, t.lon), w = t.perm ? 7 : 5.5;
+    g += `<g class="tower" aria-label="${t.label}, ${t.street}"><title>${t.label}, ${t.street}${t.perm ? " (staffed year-round)" : " (seasonal)"}</title>
+      <path d="M${x - w},${y + w} V${y - 1} L${x},${y - w - 3} L${x + w},${y - 1} V${y + w} Z" fill="${t.perm ? "var(--sea)" : "var(--surface)"}" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/>
+      <text class="tw" x="${x + w + 5}" y="${y + 4}">${t.id}</text></g>`;
+  }
   // pins
   for (const [k, sp] of Object.entries(SPOTS)) {
     const r = spotNow(k), rc = ratingClass(r.rating), [x, y] = mapXY(sp.lat, sp.lon), sel = k === spotKey;
@@ -1060,9 +1087,12 @@ function renderMap() {
       <dt>Tide</dt><dd class="num">${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}${nh ? `, ${nh.type === "H" ? "high" : "low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""}</dd></dl>
     <hr><p class="about">${sp.blurb}</p>
     <dl><dt>Type</dt><dd>${sp.type}</dd><dt>Best swell</dt><dd>${sp.bestSwell}</dd><dt>Best wind</dt><dd>${sp.bestWind}</dd><dt>Best tide</dt><dd>${sp.bestTide}</dd><dt>Reliability</dt><dd>${sp.reliability}</dd></dl>
+    <hr><p class="about"><b>Nearest lifeguard towers.</b> ${TOWERS.map(t => ({ t, d: distM(sp.lat, sp.lon, t.lat, t.lon) })).sort((a, b) => a.d - b.d).slice(0, 2).map(({ t, d }) => `${t.label} (${t.street}), about ${Math.round(d / 10) * 10} m ${t.lat > sp.lat ? "north" : "south"} and ${t.lon > sp.lon ? "inland" : "seaward"}`).join("; ")}. Towers sit on the sand, so the break is out in the water from them.</p>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
   $("toRating").onclick = () => $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+$("towerToggle").checked = showTowers;
+$("towerToggle").onchange = () => { showTowers = $("towerToggle").checked; store.set("waive.towers", showTowers); renderMap(); };
 function renderSpot() {
   $("spots").innerHTML = Object.entries(SPOTS).map(([k, sp]) => `<button type="button" data-k="${k}" aria-pressed="${k === spotKey}">${sp.name}</button>`).join("");
   $("spots").querySelectorAll("button").forEach(btn => btn.onclick = () => switchSpot(btn.dataset.k));
