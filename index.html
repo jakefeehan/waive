@@ -117,6 +117,13 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 
 /* timeline */
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#tlwrap { position: relative; }
+.tip { position: absolute; z-index: 2; pointer-events: none; min-width: 190px; max-width: 240px; padding: 10px 12px; border-radius: 8px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(15, 42, 51, 0.18); font-size: 0.84rem; line-height: 1.45; }
+.tip b { font-family: var(--font-display); font-size: 1rem; }
+.tip .rt { display: inline-block; margin: 3px 0 5px; padding: 1px 8px; border-radius: 999px; font: 600 0.78rem var(--font-data); color: #0f2a33; }
+.tip dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 0; }
+.tip dt { color: var(--ink-2); } .tip dd { margin: 0; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 #timeline { display: block; width: 100%; min-width: 760px; height: auto; }
 #timeline text { fill: var(--ink-2); font: 11px var(--font-data); }
 #timeline .daylbl { fill: var(--ink); font: 600 12px var(--font-body); }
@@ -195,10 +202,10 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
 
   <section aria-label="Forecast">
     <div>
-      <h2>Next 3 days, hour by hour</h2>
-      <p class="muted" style="margin:4px 0 0">Bars are the rating. Tap any hour to load it into the rating and the wave simulator.</p>
+      <h2>3 Day Forecast</h2>
+      <p class="muted" style="margin:4px 0 0">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
     </div>
-    <div class="panel scroll"><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
+    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
     <div class="legend">
       <span><i style="background:var(--r1)"></i>Poor</span>
       <span><i style="background:var(--r2)"></i>Poor to fair</span>
@@ -263,10 +270,11 @@ const HOUR = 3600e3;
 
 /* ---------- board profiles ---------- */
 const BOARDS = {
-  shortboard: { label: "Shortboard", len: [5.5, 6.33], lenText: "5′6″ – 6′4″", nose: "point", about: "Short, narrow and pointy. Fast and easy to turn, but hard to paddle and catch waves. For experienced surfers in waist-high or bigger waves.", size: [3, 6], ok: [1.5, 9], period: 10, wind: 10, tide: [1, 4], w: { size: 1, wind: 0.8, period: 0.5, tide: 0.35 } },
-  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 4.5], ok: [1, 7], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
-  longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board at Tourmaline.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
-  foamie:     { label: "Foamie / beginner", len: [7, 9], lenText: "7′0″ – 9′0″", nose: "round", about: "Soft foam top so it won't hurt if it hits you. Very stable and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
+  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", width: 1.75, about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 4.5], ok: [1, 7], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
+  shortboard: { label: "Shortboard", len: [5.5, 6.33], lenText: "5′6″ – 6′4″", nose: "point", width: 1.55, about: "Short, narrow and pointy. Fast and easy to turn, but hard to paddle and catch waves. For experienced surfers in waist-high or bigger waves.", size: [3, 6], ok: [1.5, 9], period: 10, wind: 10, tide: [1, 4], w: { size: 1, wind: 0.8, period: 0.5, tide: 0.35 } },
+  funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 4.5], ok: [0.8, 6.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
+  wavestorm:  { label: "Wavestorm",  len: [8, 8], lenText: "8′0″", nose: "round", width: 1.9, about: "The classic 8′ soft-top foam board. Soft so it won't hurt if it hits you, very stable, and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
+  longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board at Tourmaline.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
 };
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
@@ -274,6 +282,7 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} },
 };
 let boardKey = store.get("waive.board") || "longboard";
+if (boardKey === "foamie") { boardKey = "wavestorm"; const t = store.get("waive.tune.foamie"); if (t) store.set("waive.tune.wavestorm", t); }
 if (!BOARDS[boardKey]) boardKey = "longboard";
 function profile() {
   const base = BOARDS[boardKey];
@@ -557,8 +566,8 @@ let SCORED = [];
 function rescore() { const P = profile(); SCORED = HOURS_DATA.map(h => Object.assign({}, h, scoreHour(h, P))); }
 
 function renderBoards() {
-  $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.lenText} long</small></button>`).join("");
-  const B = BOARDS[boardKey]; $("boardAbout").innerHTML = `<b>${B.label}, usually ${B.lenText} long.</b> ${B.about}`;
+  $("boards").innerHTML = Object.entries(BOARDS).map(([k, b]) => `<button type="button" data-k="${k}" aria-pressed="${k === boardKey}">${b.label}<small>${b.len[0] === b.len[1] ? b.lenText : b.lenText + " long"}</small></button>`).join("");
+  const B = BOARDS[boardKey]; $("boardAbout").innerHTML = `<b>${B.label}, ${B.len[0] === B.len[1] ? B.lenText : "usually " + B.lenText} long.</b> ${B.about}`;
   $("boards").querySelectorAll("button").forEach(btn => btn.onclick = () => { boardKey = btn.dataset.k; store.set("waive.board", boardKey); renderBoards(); renderTune(); refresh(); });
 }
 function renderTune() {
@@ -698,9 +707,36 @@ function renderTimeline() {
   });
   // selection + hit areas
   s += `<rect id="selbox" x="${x(selected)}" y="${rTop - 6}" width="${step}" height="${wY - rTop + 12}" fill="none" stroke="var(--ink)" stroke-width="1.5" rx="2"/>`;
-  SCORED.forEach((h, i) => { s += `<rect class="hit" data-i="${i}" x="${x(i)}" y="0" width="${step}" height="340" fill="transparent" style="cursor:pointer"><title>${fmtDay.format(new Date(h.t))} ${hourLabel(h.t)}: ${h.rating.toFixed(1)}/10</title></rect>`; });
+  SCORED.forEach((h, i) => { s += `<rect class="hit" data-i="${i}" x="${x(i)}" y="0" width="${step}" height="340" fill="transparent" style="cursor:pointer"></rect>`; });
   svg.innerHTML = s;
   svg.querySelectorAll(".hit").forEach(r => r.onclick = () => select(+r.dataset.i));
+  s = "";
+  const hov = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  hov.setAttribute("y", rTop - 6); hov.setAttribute("width", step); hov.setAttribute("height", wY - rTop + 12);
+  hov.setAttribute("fill", "var(--ink)"); hov.setAttribute("fill-opacity", "0.08"); hov.setAttribute("pointer-events", "none"); hov.style.display = "none";
+  svg.insertBefore(hov, svg.querySelector(".hit"));
+  const wrap = $("tlwrap"), tip = $("tip");
+  const show = (i, ev) => {
+    const h = SCORED[i]; if (!h) return;
+    hov.setAttribute("x", x(i)); hov.style.display = "";
+    const rc = ratingClass(h.rating);
+    tip.innerHTML = `<b>${fmtDay.format(new Date(h.t))}, ${hourLabel(h.t)}</b><br><span class="rt" style="background:var(${rc.c})">${h.rating.toFixed(1)}/10 ${rc.label}</span>
+      <dl><dt>Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
+      <dt>Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
+      <dt>Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
+      <dt>Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+    tip.hidden = false;
+    const wr = wrap.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = ev.clientX - wr.left + wrap.scrollLeft + 14;
+    if (left + tw > wrap.scrollLeft + wrap.clientWidth - 6) left = ev.clientX - wr.left + wrap.scrollLeft - tw - 14;
+    let top = ev.clientY - wr.top - th / 2;
+    top = clamp(top, 4, Math.max(4, wrap.clientHeight - th - 4));
+    tip.style.left = left + "px"; tip.style.top = top + "px";
+  };
+  const idxAt = ev => { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse()); return Math.floor((p.x - L) / step); };
+  svg.onpointermove = ev => { const i = idxAt(ev); if (i >= 0 && i < SCORED.length) show(i, ev); else { tip.hidden = true; hov.style.display = "none"; } };
+  svg.onpointerleave = () => { tip.hidden = true; hov.style.display = "none"; };
+  svg.onpointerdown = ev => { const i = idxAt(ev); if (i >= 0 && i < SCORED.length) show(i, ev); };
 }
 
 function renderCompass() {
@@ -810,7 +846,7 @@ const fmtIn = i => `${Math.floor(i / 12)}′${i % 12}″`;
 })();
 function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
   const H = (heightIn / 12) * pxFt, top = base - H, Y = f => top + f * H;
-  const bw0 = (boardKey === "shortboard" ? 1.55 : boardKey === "fish" ? 1.75 : 1.9) * pxFt;
+  const bw0 = BOARDS[boardKey].width * pxFt;
   x = x - 0.2 * H - bw0 - 6; // stand just inside the shorebreak so the waves stay visible
   g.save(); g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
   // head and neck
@@ -832,7 +868,7 @@ function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
   // arms: left hangs down, right reaches to the board
   g.lineWidth = 0.045 * H;
   g.beginPath(); g.moveTo(x - 0.11 * H, Y(0.21)); g.lineTo(x - 0.15 * H, Y(0.36)); g.lineTo(x - 0.16 * H, Y(0.5)); g.stroke();
-  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, bw = (boardKey === "shortboard" ? 1.55 : boardKey === "fish" ? 1.75 : 1.9) * pxFt;
+  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, bw = BOARDS[boardKey].width * pxFt;
   const bx = x + 0.2 * H + bw / 2, btop = base - L;
   g.beginPath(); g.moveTo(x + 0.11 * H, Y(0.21)); g.lineTo(x + 0.17 * H, Y(0.34)); g.lineTo(bx - bw / 2, Y(0.4)); g.stroke();
   g.restore();
