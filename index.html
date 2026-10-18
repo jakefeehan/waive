@@ -425,7 +425,8 @@ header.top > .answer { order: 0; }
 }
 
 /* ---- one-screen Today: slim pickers, one-line answer, map + ranking, 24-hour strip ---- */
-@media (min-width: 1100px) { .tabs { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; } }
+/* tabs sit in the top row between the logo and the Live tag on wide screens, and wrap to their own line if the row is too narrow */
+@media (min-width: 761px) { .tabs { position: static; transform: none; margin: 0 auto; flex: 0 1 auto; } .toprow { flex-wrap: wrap; row-gap: 10px; } }
 .strip { padding: 14px 12px 8px; }
 .bars { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 120px; }
 .sbar { display: grid; grid-template-rows: 1fr auto; justify-items: center; height: 100%; padding: 0; border: none; background: none; cursor: pointer; position: relative; min-width: 0; }
@@ -475,6 +476,14 @@ header.top > .answer { order: 0; }
   <header class="top">
     <div class="toprow">
       <span class="logo"><img class="logo-light" src="assets/v2-light.svg" alt="Waive"><img class="logo-dark" src="assets/v2-dark.svg" alt="" aria-hidden="true"></span>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
+    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
+    <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
+    <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
+    <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
+    <button type="button" role="tab" id="tabbtn-about" data-tab="about" aria-controls="tab-about" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>About</span></button>
+  </nav>
       <span id="modeChip" class="chip"><span class="dot"></span><span id="modeText">Loading forecast…</span></span>
     </div>
     <div class="spots" id="spots" role="group" aria-label="Choose a break"></div>
@@ -490,14 +499,6 @@ header.top > .answer { order: 0; }
 
   <div id="banner" class="banner" hidden></div>
 
-<nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
-    <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
-    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
-    <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
-    <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
-    <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
-    <button type="button" role="tab" id="tabbtn-about" data-tab="about" aria-controls="tab-about" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>About</span></button>
-  </nav>
 
   <main>
   <div class="tabpanel" id="tab-today" role="tabpanel" aria-labelledby="tabbtn-today">
