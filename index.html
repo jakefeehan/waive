@@ -729,9 +729,9 @@ const HOUR = 3600e3;
 
 /* ---------- board profiles ---------- */
 const BOARDS = {
-  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", width: 1.75, about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 4.5], ok: [1, 7], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
+  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", width: 1.75, about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 5], ok: [1, 7.5], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
   shortboard: { label: "Shortboard", len: [5.5, 6.33], lenText: "5′6″ – 6′4″", nose: "point", width: 1.55, about: "Short, narrow and pointy. Fast and easy to turn, but hard to paddle and catch waves. For experienced surfers in waist-high or bigger waves.", size: [3, 6], ok: [1.5, 9], period: 10, wind: 10, tide: [1, 4], w: { size: 1, wind: 0.8, period: 0.5, tide: 0.35 } },
-  funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 4.5], ok: [0.8, 6.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
+  funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 5.5], ok: [0.8, 7.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
   wavestorm:  { label: "Wavestorm",  len: [8, 8], lenText: "8′0″", nose: "round", width: 1.9, about: "The classic 8′ soft-top foam board. Soft so it won't hurt if it hits you, very stable, and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
   longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board for small, clean days.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
 };
@@ -963,12 +963,12 @@ function scoreHour(h, P) {
   // wave power (height x period) beyond what a beginner wants counts against the day
   const power = P.power ? clamp(1 - 0.09 * Math.max(0, f * ((h.period || 8) / 10) - P.power), 0.35, 1) : 1;
   const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide * (SPOT.tideWeight || 1)) * Math.pow(direction, 0.5) * power;
-  const rating = 10 * Math.pow(p, 2);
+  const rating = 10 * Math.pow(p, 1.7);
   return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide, direction } };
 }
 function ratingClass(r) {
   if (r >= 8.5) return { label: "Epic", c: "--r5" };
-  if (r >= 6.5) return { label: "Good", c: "--r4" };
+  if (r >= 7) return { label: "Good", c: "--r4" };
   if (r >= 5) return { label: "Fair", c: "--r3" };
   if (r >= 3) return { label: "Poor to fair", c: "--r2" };
   return { label: "Poor", c: "--r1" };
@@ -1694,12 +1694,24 @@ function dayWord(key) {
   const tom = la(Date.now() + 86400000).key; if (key === tom) return "tomorrow";
   const [Y, M, D] = key.split("-").map(Number); return fmtWk.format(new Date(Date.UTC(Y, M - 1, D, 19)));
 }
+/* Names the biggest reason a rating is not higher, in plain words. */
+function whyText(h) {
+  const sc = h.sc, P = profile();
+  const items = [["size", sc.size], ["wind", sc.wind], ["period", sc.period], ["tide", sc.tide], ["direction", sc.direction]].sort((a, b) => a[1] - b[1]);
+  const [k, v] = items[0];
+  if (v >= 0.85) return "Everything lines up: size, wind, swell and tide all score well.";
+  if (k === "size") return h.face < P.size[0] ? "Waves are smaller than your board likes." : "Waves are bigger than your board likes.";
+  if (k === "wind") return h.mph != null && h.mph >= 3.5 && windKind(h.mph, h.windDir) !== "Offshore" ? "Wind is " + windKind(h.mph, h.windDir).toLowerCase() + " (" + Math.round(h.mph) + " mph)." : "Wind is hurting the surface.";
+  if (k === "period") return "Swell period is short, so the waves are weak.";
+  if (k === "tide") return "Tide is outside this break's best range.";
+  return "Swell is blocked here: it comes from a direction this break does not see well.";
+}
 function renderToday() {
   if (!HOURS_DATA.length) return;
   const board = BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey), now = Date.now();
   const per = Object.keys(SPOTS).map(k => ({ k, name: SPOTS[k].name, wins: withSpot(k, () => computeWindows().map(w => {
     const b = w.best, s0 = SCORED[b.idx[0]], e0 = SCORED[b.idx[b.idx.length - 1]], mid = SCORED[b.idx[Math.floor(b.idx.length / 2)]];
-    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face };
+    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face, why: whyText(mid) };
   })) }));
   const first = per.reduce((a, p) => (p.wins.length && (!a || p.wins[0].key < a) ? p.wins[0].key : a), null);
   if (!first) { $("answer").innerHTML = `<p class="muted">No daylight hours left in the forecast yet.</p>`; $("rank").innerHTML = ""; return; }
@@ -1709,10 +1721,11 @@ function renderToday() {
   if (top.w.avg >= WORTH_IT) {
     const nowIn = top.w.s <= now && now < top.w.e;
     line = `${nowIn ? "Best now" : "Best " + dw}: <b>${top.name}</b>, ${top.w.avg.toFixed(1)}/10 for your ${board}, ${windowText(top.w.s, top.w.e)}`;
+    sub = "Why this rating: " + top.w.why;
   } else {
     line = `Nothing worth paddling out for ${dw}.`;
     const later = per.flatMap(p => p.wins.filter(w => w.key !== first && w.avg >= WORTH_IT).map(w => ({ name: p.name, w }))).sort((a, b) => b.w.avg - a.w.avg)[0];
-    sub = later ? `Next good window: ${dayWord(later.w.key)} at ${later.name}, ${later.w.avg.toFixed(1)}/10, ${windowText(later.w.s, later.w.e)}.` : "Nothing good in the next few days either. Check back tomorrow.";
+    sub = "Why this rating: " + top.w.why + " " + (later ? `Next good window: ${dayWord(later.w.key)} at ${later.name}, ${later.w.avg.toFixed(1)}/10, ${windowText(later.w.s, later.w.e)}.` : "Nothing good in the next few days either. Check back tomorrow.");
   }
   $("answer").innerHTML = `<span class="badge" style="background:var(${rc.c})"><b class="num">${top.w.avg.toFixed(1)}</b><i>${rc.label}</i></span>
     <div><p class="eyebrow">${top.w.avg >= WORTH_IT ? "The best call" : "The call"}</p><h2 class="line">${line}</h2>${sub ? `<p class="subline">${sub}</p>` : ""}</div>`;
