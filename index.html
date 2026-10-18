@@ -1014,7 +1014,7 @@ async function loadAll() {
     const hs = sw.swell * cal;
     HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, mph: wd.mph, windDir: wd.dir, gust: wd.gust, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
   }
-  if (!BUOY) BUOY = Object.assign({ sample: true }, sample.buoy);
+  if (!BUOY) { BUOY = Object.assign({ sample: true }, sample.buoy); usedSample.add("buoy"); }
   const live = liveCount > 0;
   const chip = document.getElementById("modeChip"), txt = document.getElementById("modeText"), ban = document.getElementById("banner");
   if (!live) {
@@ -1022,8 +1022,9 @@ async function loadAll() {
     ban.hidden = false;
     ban.textContent = "This preview can't reach outside websites, so it is showing sample conditions shaped like a real October day in Pacific Beach. The live site at jakefeehan.github.io/waive pulls live NOAA and NWS data.";
   } else if (usedSample.size) {
-    chip.className = "chip mixed"; txt.textContent = "Live, partly sample";
-    ban.hidden = false; ban.textContent = "Some sources didn't load, so these parts use sample values: " + [...usedSample].join(", ") + ". See the table at the bottom.";
+    const names = { swell: "wave forecast", wind: "wind", tide: "tides", buoy: "buoy reading" };
+    chip.className = "chip mixed"; txt.textContent = "Live · some data missing";
+    ban.hidden = false; ban.textContent = "Part of the live data didn't load, so these are showing made-up sample numbers for now: " + [...usedSample].map(k => names[k] || k).join(", ") + ". Reload in a few minutes. The About tab shows which sources are down.";
   } else {
     chip.className = "chip live"; txt.textContent = "Live · updated " + fmtTime.format(new Date());
   }
