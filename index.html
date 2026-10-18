@@ -209,7 +209,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 
 /* sim */
 .simwrap { display: grid; gap: 10px; }
-#sim { width: 100%; height: 280px; display: block; border-radius: 8px; background: var(--surface-2); }
+#sim { width: 100%; height: 340px; display: block; border-radius: 8px; background: var(--surface-2); }
 .simbar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; font-size: 0.88rem; }
 .simbar button { font: 600 0.85rem var(--font-body); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .two { display: grid; grid-template-columns: 1fr 260px; gap: 18px; align-items: start; }
@@ -592,8 +592,10 @@ header.top > .answer { order: 0; }
           <button id="simPlay" type="button">Pause</button>
           <button id="simSpeed" type="button">Speed: 4×</button>
           <label for="heightSel">Your height <select id="heightSel"></select></label>
+          <span class="runseg" id="poseSeg" role="group" aria-label="Surfer pose"></span>
           <span id="simInfo" class="muted"></span>
         </div>
+        <p class="muted" id="simDepth" style="margin:0;font-size:.84rem"></p>
       </div>
       <div class="panel">
         <span class="eyebrow">Swell window</span>
@@ -1432,9 +1434,12 @@ function drawSim(now) {
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   const dt = (now - sim.last) / 1000; sim.last = now; if (sim.playing) sim.simTime += dt * sim.speed;
   const p = sim.p; if (!p) return;
-  const base = H - 34, shore = W * 0.86, spacing = Math.max(120, W / 5.5);
-  const B0 = BOARDS[boardKey], tallest = Math.max(heightIn / 12, (B0.len[0] + B0.len[1]) / 2);
-  const pxFt = (base - 40) / Math.max(tallest * 1.05, p.set * 1.45);
+  const shore = W * 0.86, spacing = Math.max(120, W / 5.5);
+  const B0 = BOARDS[boardKey], boardFt = (B0.len[0] + B0.len[1]) / 2, Hs = heightIn / 12;
+  const tideNow = (SCORED[selected] || {}).tide, depthS = Math.max(0.3, SIM_D0 + (tideNow == null ? 3 : tideNow)); // ft of water where the surfer stands
+  const standing = poseKey === "stand";
+  const aboveFt = Math.max(p.set * 1.45, standing ? Math.max(Hs, boardFt) - depthS : 1.5) + 0.4;
+  const pxFt = (H - 34) / (aboveFt + depthS + 1.4), base = 14 + aboveFt * pxFt; // base = the still water line
   const v = spacing / p.T; // px per simulated second
   const head = sim.simTime * v;
   // sky/sea tokens
@@ -1442,8 +1447,9 @@ function drawSim(now) {
   // height guides
   g.font = "11px " + css("--font-data"); g.fillStyle = ink2; g.strokeStyle = line; g.lineWidth = 1;
   for (let ft = 2; ft * pxFt < base - 10; ft += 2) { const y = base - ft * pxFt; g.setLineDash([2, 5]); g.beginPath(); g.moveTo(30, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]); g.fillText(ft + " ft", 2, y + 4); }
-  // sand
-  g.fillStyle = sand; g.beginPath(); g.moveTo(shore - 30, H); g.lineTo(W, base - 22); g.lineTo(W, H); g.closePath(); g.fill();
+  const Hpx = Hs * pxFt, bw0 = B0.width * pxFt, xs = shore - 0.2 * Hpx - bw0 - 6; // where the surfer stands
+  const depthAt = x => x <= xs ? depthS + ((xs - x) / pxFt) * 0.04 : Math.max(0, depthS * (1 - (x - xs) / (shore + 30 - xs)));
+  const floorY = x => base + depthAt(x) * pxFt;
   // surface
   const kNow = Math.floor(head / spacing);
   const surf = x => {
@@ -1460,14 +1466,25 @@ function drawSim(now) {
   };
   const grad = g.createLinearGradient(0, base - p.set * pxFt, 0, H);
   grad.addColorStop(0, sea); grad.addColorStop(1, seaSoft);
-  g.fillStyle = grad; g.beginPath(); g.moveTo(0, H);
-  for (let x = 0; x <= shore + 40; x += 3) g.lineTo(x, base - surf(x) * pxFt * 0.9 - 0.1 * pxFt * surf(x));
-  g.lineTo(shore + 40, H); g.closePath(); g.fill();
+  const waterPath = () => { g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 40; x += 3) g.lineTo(x, base - surf(x) * pxFt); g.lineTo(shore + 40, H); g.closePath(); };
+  g.fillStyle = grad; g.save(); g.globalAlpha = standing ? 0.78 : 1; waterPath(); g.fill(); g.restore();
+  if (standing) {
+    // the surfer stands on the seafloor, then the water is drawn over them so the waterline cuts across the body
+    drawSurfer(g, xs, floorY(xs), pxFt, ink, ink2, sand);
+    g.save(); g.globalAlpha = 0.42; g.fillStyle = sea; waterPath(); g.fill(); g.restore();
+  }
+  // seafloor and beach: a sandbar under the surfer sloping up to the beach
+  g.fillStyle = sand; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 30; x += 6) g.lineTo(x, floorY(x));
+  g.lineTo(W, base - (W - shore - 30) * 0.12); g.lineTo(W, H); g.closePath(); g.fill();
+  g.strokeStyle = ink2; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.beginPath(); for (let x = 0; x <= shore + 30; x += 6) { const y = floorY(x); x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.globalAlpha = 1;
   // whitewater at shore
   g.fillStyle = "rgba(255,255,255,0.55)";
   for (let k = kNow - 1; k <= kNow + 1; k++) { if (k < 0) continue; const xc = head - k * spacing; if (xc > shore - 20 && xc < shore + 60) { const a = 1 - (xc - shore + 20) / 80; g.globalAlpha = clamp(a, 0, 1); g.beginPath(); g.ellipse(xc, base - 4, 26, 8, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; } }
   // surfer for scale: the viewer's height, holding the selected board upright
-  drawSurfer(g, shore, base, pxFt, ink, ink2, sand);
+  if (!standing) drawLying(g, xs, (x) => base - surf(x) * pxFt, pxFt, ink, ink2, sand);
+  const part = bodyPart(depthS / Hs), tideTxt = tideNow == null ? "tide unknown, assuming 3 ft" : tideNow.toFixed(1) + " ft tide";
+  const dtxt = standing ? `Water is ${part === "over your head" ? "over your head" : "about " + part + " high"} at ${tideTxt}. Assumes the spot you stand on is ${SIM_D0} ft under water at a 0 ft tide (an approximation, not measured).` : `Lying on your board, floating on top of the water. Depth here is about ${depthS.toFixed(1)} ft at ${tideTxt} (assumes ${SIM_D0} ft at a 0 ft tide, an approximation).`;
+  if ($("simDepth").textContent !== dtxt) $("simDepth").textContent = dtxt;
   // set countdown
   const k = Math.max(0, Math.floor((head - shore) / spacing) + 1);
   let wait = 0; for (let j = k; j < k + p.every * 2; j++) { if ((j % p.every) < p.perSet) { wait = ((j * spacing + shore) - head) / v; break; } }
@@ -1483,10 +1500,30 @@ const fmtIn = i => `${Math.floor(i / 12)}′${i % 12}″`;
   sel.innerHTML = o;
   sel.onchange = () => { heightIn = +sel.value; store.set("waive.heightIn", heightIn); };
 })();
+const SIM_D0 = 1; // assumed water depth (ft) where the surfer stands at a 0 ft tide
+let poseKey = store.get("waive.pose") === "lie" ? "lie" : "stand";
+function bodyPart(f) { // how high the water reaches, as a fraction of standing height from the feet
+  return f < 0.08 ? "ankle" : f < 0.22 ? "shin" : f < 0.32 ? "knee" : f < 0.46 ? "thigh" : f < 0.56 ? "hip" : f < 0.64 ? "waist" : f < 0.78 ? "chest" : f < 0.86 ? "shoulder" : f < 0.95 ? "neck" : "over your head";
+}
+// prone paddling pose: the board floats on the surface, the surfer lies on it facing the beach
+function drawLying(g, x, surfY, pxFt, ink, ink2, sand) {
+  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, th = Math.max(5, 0.45 * pxFt), Hs = (heightIn / 12) * pxFt;
+  const xa = x - L / 2, xb = x + L / 2, ya = surfY(xa), yb = surfY(xb), ang = Math.atan2(yb - ya, xb - xa);
+  g.save(); g.translate(x, (ya + yb) / 2 - th * 0.25); g.rotate(ang);
+  g.fillStyle = sand; g.strokeStyle = ink; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(-L / 2, 0); g.quadraticCurveTo(0, -th * 0.9, L / 2, 0); g.quadraticCurveTo(0, th * 0.6, -L / 2, 0); g.fill(); g.stroke();
+  g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
+  const lx = -L * 0.38, top = -th * 0.55; // tail end of the body, resting on the deck
+  g.lineWidth = 0.075 * Hs; g.beginPath(); g.moveTo(lx, top); g.lineTo(lx + 0.45 * Hs, top - 0.02 * Hs); g.stroke();          // legs and hips
+  g.lineWidth = 0.17 * Hs; g.beginPath(); g.moveTo(lx + 0.4 * Hs, top - 0.03 * Hs); g.lineTo(lx + 0.8 * Hs, top - 0.07 * Hs); g.stroke(); // torso
+  g.lineWidth = 0.05 * Hs; g.beginPath(); g.moveTo(lx + 0.78 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.88 * Hs, top - 0.2 * Hs); g.stroke(); // neck
+  g.beginPath(); g.arc(lx + 0.93 * Hs, top - 0.24 * Hs, 0.065 * Hs, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(lx + 0.7 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.78 * Hs, top + 0.04 * Hs); g.stroke();                 // arm in the water
+  g.restore();
+  g.fillStyle = ink2; g.fillText(`You, ${fmtIn(heightIn)}, lying on a ${B.label.split(" ")[0].toLowerCase()}`, x - L / 2, Math.min(surfY(x), ya) - 0.5 * Hs - 20);
+}
 function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
   const H = (heightIn / 12) * pxFt, top = base - H, Y = f => top + f * H;
-  const bw0 = BOARDS[boardKey].width * pxFt;
-  x = x - 0.2 * H - bw0 - 6; // stand just inside the shorebreak so the waves stay visible
   g.save(); g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
   // head and neck
   g.beginPath(); g.ellipse(x, Y(0.065), 0.052 * H, 0.065 * H, 0, 0, Math.PI * 2); g.fill();
@@ -1866,6 +1903,11 @@ function renderStrip() {
 matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
 renderSpot();
 renderRunSeg();
+(function poseInit() {
+  const seg = $("poseSeg");
+  const paint = () => { seg.innerHTML = [["stand", "Standing"], ["lie", "Lying on board"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${poseKey === k}">${l}</button>`).join(""); seg.querySelectorAll("button").forEach(b => b.onclick = () => { poseKey = b.dataset.k; store.set("waive.pose", poseKey); paint(); }); };
+  paint();
+})();
 loadScorecard();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
