@@ -193,7 +193,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 
 /* timeline */
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-#tlwrap { position: relative; }
+#tlwrap, .stripwrap { position: relative; }
 .tip { position: absolute; z-index: 2; pointer-events: none; min-width: 190px; max-width: 240px; padding: 10px 12px; border-radius: 8px;
   background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(15, 42, 51, 0.18); font-size: 0.84rem; line-height: 1.45; }
 .tip b { font-family: var(--font-display); font-size: 1rem; }
@@ -209,7 +209,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 
 /* sim */
 .simwrap { display: grid; gap: 10px; }
-#sim { width: 100%; height: 280px; display: block; border-radius: 8px; background: var(--surface-2); }
+#sim { width: 100%; height: 340px; display: block; border-radius: 8px; background: var(--surface-2); }
 .simbar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; font-size: 0.88rem; }
 .simbar button { font: 600 0.85rem var(--font-body); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .two { display: grid; grid-template-columns: 1fr 260px; gap: 18px; align-items: start; }
@@ -229,6 +229,16 @@ th { font: 500 0.72rem var(--font-data); text-transform: uppercase; letter-spaci
 .prose p { margin: 0; }
 footer { font-size: 0.82rem; color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.suitchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 0.84rem var(--font-body); cursor: pointer; }
+.suitchip:hover { border-color: var(--sea); } .suitchip:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+.suitchip.none { cursor: default; color: var(--ink-2); font-weight: 500; }
+.suitrow { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.suitrow small { color: var(--ink-2); font-size: 0.8rem; }
+.runseg { display: inline-flex; gap: 6px; margin-top: 4px; } .runseg button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 0.88rem var(--font-body); cursor: pointer; }
+.runseg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+#suitDlg { max-width: min(92vw, 440px); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 18px 20px; }
+#suitDlg::backdrop { background: rgba(15, 42, 51, 0.45); } #suitDlg p { margin: 8px 0; line-height: 1.5; }
 </style>
 <style id="redesign">
 /* ===== Redesign: calm, spacious, bold type; tabs; phone first ===== */
@@ -478,8 +488,8 @@ header.top > .answer { order: 0; }
       <span class="logo"><img class="logo-light" src="assets/v2-light.svg" alt="Waive"><img class="logo-dark" src="assets/v2-dark.svg" alt="" aria-hidden="true"></span>
       <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
     <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
-    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
     <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
+    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
     <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
     <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
     <button type="button" role="tab" id="tabbtn-about" data-tab="about" aria-controls="tab-about" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>About</span></button>
@@ -502,6 +512,7 @@ header.top > .answer { order: 0; }
 
   <main>
   <div class="tabpanel" id="tab-today" role="tabpanel" aria-labelledby="tabbtn-today">
+    <div class="suitrow" id="suitRow"></div>
     <div class="duo">
     <section aria-label="All breaks ranked">
       <div class="sechead"><h2>All breaks</h2><p class="muted" id="rankSub">Ranked for your board.</p></div>
@@ -516,9 +527,40 @@ header.top > .answer { order: 0; }
 
 
     <section aria-label="Next 24 hours" class="stripsec">
-      <div class="sechead"><h2>Next 24 hours</h2><p class="muted" id="stripSub">Tap an hour to see it.</p></div>
-      <div class="panel strip" id="strip" role="group" aria-label="Rating for each of the next 24 hours"></div>
+      <div class="sechead"><h2>Next 24 hours</h2><p class="muted" id="stripSub">Hover or tap an hour for details, click to load it.</p></div>
+      <div class="stripwrap" id="stripWrap"><div id="stripTip" class="tip" hidden></div><div class="panel strip" id="strip" role="group" aria-label="Rating for each of the next 24 hours"></div></div>
       <button type="button" class="more" data-goto="details">See the full forecast, wave animation and details →</button>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast" hidden>
+    <section aria-label="Best time per day">
+      <div class="sechead"><h2>Best time to go</h2><p class="muted">One line per day, for your board and skill. Tap a line to load that hour.</p></div>
+      <ul class="bestlines" id="bestLines"></ul>
+    </section>
+    <section aria-label="Forecast">
+      <div class="sechead">
+        <h2>3 Day Forecast</h2>
+        <p class="muted">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
+      </div>
+    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--r1)"></i>Poor</span>
+      <span><i style="background:var(--r2)"></i>Poor to fair</span>
+      <span><i style="background:var(--r3)"></i>Fair</span>
+      <span><i style="background:var(--r4)"></i>Good</span>
+      <span><i style="background:var(--r5)"></i>Epic</span>
+      <span><i style="background:var(--night)"></i>Dark</span>
+    </div>
+
+    </section>
+    <section aria-label="Best times">
+      <div class="sechead"><h2>Day by day</h2><p class="muted">Daylight hours only, rated for your board. Tap a day to load its best hour.</p></div>
+      <div class="days" id="days"></div>
+    </section>
+    <section aria-label="Why this rating" class="panel">
+      <div class="sechead"><h2>Why this rating</h2><p class="muted" id="whyNote">How each factor scores at the hour you picked.</p></div>
+      <div class="factors" id="factors"></div>
     </section>
   </div>
 
@@ -538,23 +580,6 @@ header.top > .answer { order: 0; }
       </div>
     </section>
 
-    <section aria-label="Forecast">
-      <div class="sechead">
-        <h2>3 Day Forecast</h2>
-        <p class="muted">Bars are the rating. Hover or tap an hour for its details, and click to load it into the rating and the wave simulator.</p>
-      </div>
-    <div class="panel scroll" id="tlwrap"><div id="tip" class="tip" hidden></div><svg id="timeline" viewBox="0 0 1000 340" role="img" aria-label="Hourly surf rating, wave size, tide and wind for 72 hours"></svg></div>
-    <div class="legend">
-      <span><i style="background:var(--r1)"></i>Poor</span>
-      <span><i style="background:var(--r2)"></i>Poor to fair</span>
-      <span><i style="background:var(--r3)"></i>Fair</span>
-      <span><i style="background:var(--r4)"></i>Good</span>
-      <span><i style="background:var(--r5)"></i>Epic</span>
-      <span><i style="background:var(--night)"></i>Dark</span>
-    </div>
-
-    </section>
-
     <section aria-label="What the waves look like">
       <div class="sechead">
         <h2>What the sets look like</h2>
@@ -567,8 +592,10 @@ header.top > .answer { order: 0; }
           <button id="simPlay" type="button">Pause</button>
           <button id="simSpeed" type="button">Speed: 4×</button>
           <label for="heightSel">Your height <select id="heightSel"></select></label>
+          <span class="runseg" id="poseSeg" role="group" aria-label="Surfer pose"></span>
           <span id="simInfo" class="muted"></span>
         </div>
+        <p class="muted" id="simDepth" style="margin:0;font-size:.84rem"></p>
       </div>
       <div class="panel">
         <span class="eyebrow">Swell window</span>
@@ -580,20 +607,6 @@ header.top > .answer { order: 0; }
     </section>
   </div>
 
-  <div class="tabpanel" id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast" hidden>
-    <section aria-label="Best time per day">
-      <div class="sechead"><h2>Best time to go</h2><p class="muted">One line per day, for your board and skill. Tap a line to load that hour.</p></div>
-      <ul class="bestlines" id="bestLines"></ul>
-    </section>
-    <section aria-label="Best times">
-      <div class="sechead"><h2>Day by day</h2><p class="muted">Daylight hours only, rated for your board. Tap a day to load its best hour.</p></div>
-      <div class="days" id="days"></div>
-    </section>
-    <section aria-label="Why this rating" class="panel">
-      <div class="sechead"><h2>Why this rating</h2><p class="muted" id="whyNote">How each factor scores at the hour you picked.</p></div>
-      <div class="factors" id="factors"></div>
-    </section>
-  </div>
 
   <div class="tabpanel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map" hidden>
     <section aria-label="Map of the breaks">
@@ -604,8 +617,8 @@ header.top > .answer { order: 0; }
         <div class="mapwrap">
           <svg id="map" viewBox="0 0 600 640" role="group" aria-label="Map of the Pacific Beach breaks and streets, north at the top"></svg>
           <div class="mapchips" id="mapChips"></div>
-          <div class="mapctl"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomReset" aria-label="Reset map view">⌂</button></div>
-          <div class="mapnote"><div class="north" aria-hidden="true">N</div><div class="scale"><i id="scaleBar"></i><span>500 m</span></div></div>
+          <div class="mapctl"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomReset" aria-label="Reset map view">⌂</button><button type="button" id="locBtn" aria-label="Show my location" aria-pressed="false" title="Show my location">◎</button></div>
+          <div class="mapnote" id="mapNote"><span id="locMsg" role="status" style="position:absolute;left:0;bottom:46px;width:max-content;max-width:230px;font-size:.78rem;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.2)"></span><div class="north" aria-hidden="true">N</div><div class="scale"><i id="scaleBar"></i><span>500 m</span></div></div>
         </div>
         <div class="maplegend">
           <span><svg width="16" height="16" viewBox="-9 -11 18 20" aria-hidden="true"><path d="M-6,6 V-1 L0,-9 L6,-1 V6 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/></svg>Lifeguard tower</span>
@@ -637,6 +650,8 @@ header.top > .answer { order: 0; }
     <div class="prose">
       <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
       <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
+      <p>On the scale, Fair is about 5 to 7, Good is 7 and up, and Epic is 8.5 and up.</p>
+      <p><b>Wetsuit suggestion.</b> The chip next to the water temperature comes only from the Torrey Pines buoy's measured water temperature, never an estimate. If the buoy has no reading it says so. In Fine-tune you can say whether you run cold or warm, and the suggestion moves one step thicker or thinner. It is a general guide, not advice for your body.</p>
       <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
     </div>
 
@@ -657,10 +672,16 @@ header.top > .answer { order: 0; }
   <footer><span class="free"><b>Free, no ads, no sign-up.</b></span> Prototype. Wave face heights are estimates. Always check the water yourself before paddling out.</footer>
 </div>
 
+<dialog id="suitDlg" aria-labelledby="suitTitle">
+  <div class="sheethead"><h2 id="suitTitle" style="margin:0;font-size:1.1rem">What to wear</h2><button type="button" id="suitClose" aria-label="Close">×</button></div>
+  <div id="suitBody"></div>
+</dialog>
+
 <dialog id="tuneDlg" class="sheet" aria-labelledby="tuneTitle">
   <div class="sheethead"><h2 id="tuneTitle">Fine-tune</h2><button type="button" id="tuneClose" aria-label="Close">×</button></div>
   <p class="board-about" id="boardAbout"></p>
   <p class="muted" id="skillAbout" style="margin:0"></p>
+  <div style="margin:12px 0 0"><b style="font-size:.9rem">In the water I run</b><br><span class="runseg" id="runSeg"></span><p class="muted" style="margin:6px 0 0;font-size:.82rem">Shifts the wetsuit suggestion one step thicker or thinner.</p></div>
   <div class="tune-grid" id="tune"></div>
   <p class="muted" style="margin:14px 0 0;font-size:.85rem">Changes are saved in this browser for each board. <button class="linkbtn" id="resetBoard" type="button">Reset this board</button></p>
 </dialog>
@@ -729,9 +750,9 @@ const HOUR = 3600e3;
 
 /* ---------- board profiles ---------- */
 const BOARDS = {
-  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", width: 1.75, about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 4.5], ok: [1, 7], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
+  fish:       { label: "Fish",       len: [5.17, 6.17], lenText: "5′2″ – 6′2″", nose: "round", width: 1.75, about: "Short but wide and thick, with a split tail. Catches small waves more easily than a shortboard and still turns well.", size: [2, 5], ok: [1, 7.5], period: 9, wind: 10, tide: [1.5, 4.5], w: { size: 1, wind: 0.8, period: 0.4, tide: 0.35 } },
   shortboard: { label: "Shortboard", len: [5.5, 6.33], lenText: "5′6″ – 6′4″", nose: "point", width: 1.55, about: "Short, narrow and pointy. Fast and easy to turn, but hard to paddle and catch waves. For experienced surfers in waist-high or bigger waves.", size: [3, 6], ok: [1.5, 9], period: 10, wind: 10, tide: [1, 4], w: { size: 1, wind: 0.8, period: 0.5, tide: 0.35 } },
-  funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 4.5], ok: [0.8, 6.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
+  funboard:   { label: "Funboard",   len: [6.5, 8], lenText: "6′6″ – 8′0″", nose: "round", width: 1.8, about: "In between a shortboard and a longboard. Easier to paddle and catch waves than a shortboard, but still turns well. A great step up from a beginner board.", size: [2, 5.5], ok: [0.8, 7.5], period: 8, wind: 11, tide: [1.5, 4.5], w: { size: 1, wind: 0.75, period: 0.3, tide: 0.35 } },
   wavestorm:  { label: "Wavestorm",  len: [8, 8], lenText: "8′0″", nose: "round", width: 1.9, about: "The classic 8′ soft-top foam board. Soft so it won't hurt if it hits you, very stable, and easy to stand up on. The best board to learn on.", size: [1, 2.5], ok: [0.3, 4], period: 6, wind: 9, tide: [2, 5], w: { size: 1.2, wind: 0.8, period: 0.15, tide: 0.35 } },
   longboard:  { label: "Longboard",  len: [9, 10], lenText: "9′0″ – 10′0″", nose: "round", width: 1.9, about: "Long, wide and floaty. Paddles fast and catches the smallest waves. The classic board for small, clean days.", size: [1.5, 4], ok: [0.7, 6], period: 8, wind: 12, tide: [2, 5], w: { size: 1, wind: 0.7, period: 0.25, tide: 0.4 } },
 };
@@ -963,12 +984,12 @@ function scoreHour(h, P) {
   // wave power (height x period) beyond what a beginner wants counts against the day
   const power = P.power ? clamp(1 - 0.09 * Math.max(0, f * ((h.period || 8) / 10) - P.power), 0.35, 1) : 1;
   const p = Math.pow(size, w.size) * Math.pow(wind, w.wind) * Math.pow(period, w.period) * Math.pow(tide, w.tide * (SPOT.tideWeight || 1)) * Math.pow(direction, 0.5) * power;
-  const rating = 10 * Math.pow(p, 2);
+  const rating = 10 * Math.pow(p, 1.7);
   return { rating: Math.round(rating * 10) / 10, sc: { size, wind, period, tide, direction } };
 }
 function ratingClass(r) {
   if (r >= 8.5) return { label: "Epic", c: "--r5" };
-  if (r >= 6.5) return { label: "Good", c: "--r4" };
+  if (r >= 7) return { label: "Good", c: "--r4" };
   if (r >= 5) return { label: "Fair", c: "--r3" };
   if (r >= 3) return { label: "Poor to fair", c: "--r2" };
   return { label: "Poor", c: "--r1" };
@@ -1076,6 +1097,48 @@ function tideTrend(h) {
 }
 function nextHilo(t) { return HILO.find(x => x.t > t); }
 
+
+/* ---------- wetsuit suggestion: from the buoy's measured water temperature only, never a model guess ---------- */
+const SUITS = [
+  { short: "Boardshorts", full: "Boardshorts or a rash guard (or a thin 1mm top)." },
+  { short: "2mm shorty", full: "A 2mm shorty or springsuit." },
+  { short: "3/2 fullsuit", full: "A 3/2 fullsuit (3 mm thick on the chest, 2 mm on the arms and legs)." },
+  { short: "3/2 fullsuit, boots if windy", full: "A 3/2 fullsuit, plus boots if it is windy." },
+  { short: "4/3 fullsuit + boots", full: "A 4/3 fullsuit with boots." },
+  { short: "4/3 or 5/4 + boots, hood or gloves", full: "A 4/3 or 5/4 fullsuit with boots and a hood or gloves." },
+  { short: "5/4 + boots, hood, gloves", full: "A 5/4 fullsuit with boots, a hood and gloves." },
+];
+let runKey = store.get("waive.run"); if (!["cold", "normal", "warm"].includes(runKey)) runKey = "normal";
+function suitFor(tF) {
+  const base = tF >= 72 ? 0 : tF >= 68 ? 1 : tF >= 64 ? 2 : tF >= 60 ? 3 : tF >= 56 ? 4 : tF >= 52 ? 5 : 6;
+  const idx = clamp(base + (runKey === "cold" ? 1 : runKey === "warm" ? -1 : 0), 0, SUITS.length - 1);
+  return { base, idx, suit: SUITS[idx] };
+}
+function suitChipHTML() {
+  if (!BUOY || BUOY.wtmpC == null) return `<span class="suitchip none">No water temperature right now</span>`;
+  const tF = BUOY.wtmpC * 9 / 5 + 32, r = suitFor(tF);
+  return `<button type="button" class="suitchip" data-suit aria-haspopup="dialog" title="Tap for what this means">🌡 ${Math.round(tF)}°F: ${r.suit.short}</button>`;
+}
+function openSuit() {
+  if (!BUOY || BUOY.wtmpC == null) return;
+  const tF = BUOY.wtmpC * 9 / 5 + 32, r = suitFor(tF), h = SCORED[selected];
+  const when = `${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))}`;
+  const windy = h && h.mph != null && h.mph >= 12;
+  $("suitBody").innerHTML = `<p><b>${Math.round(tF)}°F water</b>, measured ${when} by the Torrey Pines buoy.</p>
+    <p><b>Suggestion:</b> ${r.suit.full}</p>
+    ${runKey !== "normal" ? `<p>I shifted this one step ${runKey === "cold" ? "thicker" : "thinner"} because you said you run ${runKey}. You can change that in Fine-tune.</p>` : ""}
+    <p>Wetsuit sizes: the first number is how thick the suit is on your chest and the second on your arms and legs, in millimeters. Thicker means warmer but stiffer. Boots, a hood and gloves keep your hands, feet and head from going numb.</p>
+    <p>If it is windy, or you get cold easily, go one step thicker or add boots. ${windy ? `Wind is ${Math.round(h.mph)} mph at the selected hour, so the air will feel colder than the water.` : ""}</p>
+    <p class="muted" style="font-size:.84rem">This is a general guide from the water temperature only. Everyone's cold tolerance is different.</p>`;
+  $("suitDlg").showModal();
+}
+document.addEventListener("click", ev => { const b = ev.target.closest && ev.target.closest("[data-suit]"); if (b) openSuit(); });
+$("suitClose").onclick = () => $("suitDlg").close();
+function renderSuit() { const r = $("suitRow"); if (r) r.innerHTML = suitChipHTML() + `<small>${BUOY && BUOY.wtmpC != null ? "from the buoy's water temperature" : ""}</small>`; }
+function renderRunSeg() {
+  $("runSeg").innerHTML = [["cold", "Cold"], ["normal", "Normal"], ["warm", "Warm"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${runKey === k}">${l}</button>`).join("");
+  $("runSeg").querySelectorAll("button").forEach(b => b.onclick = () => { runKey = b.dataset.k; store.set("waive.run", runKey); renderRunSeg(); renderSuit(); renderNow(); });
+}
 function renderNow() {
   const h = SCORED[selected]; if (!h) return;
   const rc = ratingClass(h.rating);
@@ -1092,9 +1155,10 @@ function renderNow() {
     ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${Math.round(exposure(h.dir) * 100)}% open` : ""],
     ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "")],
     ["Tide", h.tide != null ? `${h.tide.toFixed(1)} ft ${tideTrend(h)}` : "–", nh ? `${nh.type === "H" ? "High" : "Low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""],
-    ["Water", water, waterSub],
+    ["Water", water + (BUOY && BUOY.wtmpC != null ? " " + suitChipHTML() : ""), waterSub],
     ["Buoy now", BUOY ? `${mToFt(BUOY.hs).toFixed(1)} ft @ ${BUOY.dpd} s` : "–", BUOY ? (BUOY.sample ? "Sample (Oct 16 reading)" : `${degToCompass(BUOY.mwd)} · ${fmtTime.format(new Date(BUOY.t))}`) : ""],
   ];
+  renderSuit();
   $("facts").innerHTML = facts.map(([k, v, s]) => `<div class="fact"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`).join("");
   const P = spotProfile();
   const why = {
@@ -1232,6 +1296,14 @@ function renderDays() {
   $("days").querySelectorAll(".day").forEach(d => d.onclick = () => select(+d.dataset.i));
 }
 
+function tipHTML(h) {
+  const rc = ratingClass(h.rating);
+  return `<b>${fmtDay.format(new Date(h.t))}, ${hourLabel(h.t)}</b><br><span class="rt" style="background:var(${rc.c})">${h.rating.toFixed(1)}/10 ${rc.label}</span>
+      <dl><dt>Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
+      <dt>Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
+      <dt>Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
+      <dt>Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+}
 function renderTimeline() {
   const svg = $("timeline"), W = 1000, L = 34, R = 8, step = (W - L - R) / HOURS;
   const x = i => L + i * step;
@@ -1293,11 +1365,7 @@ function renderTimeline() {
     const h = SCORED[i]; if (!h) return;
     hov.setAttribute("x", x(i)); hov.style.display = "";
     const rc = ratingClass(h.rating);
-    tip.innerHTML = `<b>${fmtDay.format(new Date(h.t))}, ${hourLabel(h.t)}</b><br><span class="rt" style="background:var(${rc.c})">${h.rating.toFixed(1)}/10 ${rc.label}</span>
-      <dl><dt>Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
-      <dt>Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
-      <dt>Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
-      <dt>Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+    tip.innerHTML = tipHTML(h);
     tip.hidden = false;
     const wr = wrap.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
     let left = ev.clientX - wr.left + wrap.scrollLeft + 14;
@@ -1366,9 +1434,12 @@ function drawSim(now) {
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   const dt = (now - sim.last) / 1000; sim.last = now; if (sim.playing) sim.simTime += dt * sim.speed;
   const p = sim.p; if (!p) return;
-  const base = H - 34, shore = W * 0.86, spacing = Math.max(120, W / 5.5);
-  const B0 = BOARDS[boardKey], tallest = Math.max(heightIn / 12, (B0.len[0] + B0.len[1]) / 2);
-  const pxFt = (base - 40) / Math.max(tallest * 1.05, p.set * 1.45);
+  const shore = W * 0.86, spacing = Math.max(120, W / 5.5);
+  const B0 = BOARDS[boardKey], boardFt = (B0.len[0] + B0.len[1]) / 2, Hs = heightIn / 12;
+  const tideNow = (SCORED[selected] || {}).tide, depthS = Math.max(0.3, SIM_D0 + (tideNow == null ? 3 : tideNow)); // ft of water where the surfer stands
+  const standing = poseKey === "stand";
+  const aboveFt = Math.max(p.set * 1.45, standing ? Math.max(Hs, boardFt) - depthS : 1.5) + 0.4;
+  const pxFt = (H - 34) / (aboveFt + depthS + 1.4), base = 14 + aboveFt * pxFt; // base = the still water line
   const v = spacing / p.T; // px per simulated second
   const head = sim.simTime * v;
   // sky/sea tokens
@@ -1376,8 +1447,9 @@ function drawSim(now) {
   // height guides
   g.font = "11px " + css("--font-data"); g.fillStyle = ink2; g.strokeStyle = line; g.lineWidth = 1;
   for (let ft = 2; ft * pxFt < base - 10; ft += 2) { const y = base - ft * pxFt; g.setLineDash([2, 5]); g.beginPath(); g.moveTo(30, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]); g.fillText(ft + " ft", 2, y + 4); }
-  // sand
-  g.fillStyle = sand; g.beginPath(); g.moveTo(shore - 30, H); g.lineTo(W, base - 22); g.lineTo(W, H); g.closePath(); g.fill();
+  const Hpx = Hs * pxFt, bw0 = B0.width * pxFt, xs = shore - 0.2 * Hpx - bw0 - 6; // where the surfer stands
+  const depthAt = x => x <= xs ? depthS + ((xs - x) / pxFt) * 0.04 : Math.max(0, depthS * (1 - (x - xs) / (shore + 30 - xs)));
+  const floorY = x => base + depthAt(x) * pxFt;
   // surface
   const kNow = Math.floor(head / spacing);
   const surf = x => {
@@ -1394,14 +1466,25 @@ function drawSim(now) {
   };
   const grad = g.createLinearGradient(0, base - p.set * pxFt, 0, H);
   grad.addColorStop(0, sea); grad.addColorStop(1, seaSoft);
-  g.fillStyle = grad; g.beginPath(); g.moveTo(0, H);
-  for (let x = 0; x <= shore + 40; x += 3) g.lineTo(x, base - surf(x) * pxFt * 0.9 - 0.1 * pxFt * surf(x));
-  g.lineTo(shore + 40, H); g.closePath(); g.fill();
+  const waterPath = () => { g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 40; x += 3) g.lineTo(x, base - surf(x) * pxFt); g.lineTo(shore + 40, H); g.closePath(); };
+  g.fillStyle = grad; g.save(); g.globalAlpha = standing ? 0.78 : 1; waterPath(); g.fill(); g.restore();
+  if (standing) {
+    // the surfer stands on the seafloor, then the water is drawn over them so the waterline cuts across the body
+    drawSurfer(g, xs, floorY(xs), pxFt, ink, ink2, sand);
+    g.save(); g.globalAlpha = 0.42; g.fillStyle = sea; waterPath(); g.fill(); g.restore();
+  }
+  // seafloor and beach: a sandbar under the surfer sloping up to the beach
+  g.fillStyle = sand; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 30; x += 6) g.lineTo(x, floorY(x));
+  g.lineTo(W, base - (W - shore - 30) * 0.12); g.lineTo(W, H); g.closePath(); g.fill();
+  g.strokeStyle = ink2; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.beginPath(); for (let x = 0; x <= shore + 30; x += 6) { const y = floorY(x); x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.globalAlpha = 1;
   // whitewater at shore
   g.fillStyle = "rgba(255,255,255,0.55)";
   for (let k = kNow - 1; k <= kNow + 1; k++) { if (k < 0) continue; const xc = head - k * spacing; if (xc > shore - 20 && xc < shore + 60) { const a = 1 - (xc - shore + 20) / 80; g.globalAlpha = clamp(a, 0, 1); g.beginPath(); g.ellipse(xc, base - 4, 26, 8, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; } }
   // surfer for scale: the viewer's height, holding the selected board upright
-  drawSurfer(g, shore, base, pxFt, ink, ink2, sand);
+  if (!standing) drawLying(g, xs, (x) => base - surf(x) * pxFt, pxFt, ink, ink2, sand);
+  const part = bodyPart(depthS / Hs), tideTxt = tideNow == null ? "tide unknown, assuming 3 ft" : tideNow.toFixed(1) + " ft tide";
+  const dtxt = standing ? `Water is ${part === "over your head" ? "over your head" : "about " + part + " high"} at ${tideTxt}. Assumes the spot you stand on is ${SIM_D0} ft under water at a 0 ft tide (an approximation, not measured).` : `Lying on your board, floating on top of the water. Depth here is about ${depthS.toFixed(1)} ft at ${tideTxt} (assumes ${SIM_D0} ft at a 0 ft tide, an approximation).`;
+  if ($("simDepth").textContent !== dtxt) $("simDepth").textContent = dtxt;
   // set countdown
   const k = Math.max(0, Math.floor((head - shore) / spacing) + 1);
   let wait = 0; for (let j = k; j < k + p.every * 2; j++) { if ((j % p.every) < p.perSet) { wait = ((j * spacing + shore) - head) / v; break; } }
@@ -1417,10 +1500,30 @@ const fmtIn = i => `${Math.floor(i / 12)}′${i % 12}″`;
   sel.innerHTML = o;
   sel.onchange = () => { heightIn = +sel.value; store.set("waive.heightIn", heightIn); };
 })();
+const SIM_D0 = 1; // assumed water depth (ft) where the surfer stands at a 0 ft tide
+let poseKey = store.get("waive.pose") === "lie" ? "lie" : "stand";
+function bodyPart(f) { // how high the water reaches, as a fraction of standing height from the feet
+  return f < 0.08 ? "ankle" : f < 0.22 ? "shin" : f < 0.32 ? "knee" : f < 0.46 ? "thigh" : f < 0.56 ? "hip" : f < 0.64 ? "waist" : f < 0.78 ? "chest" : f < 0.86 ? "shoulder" : f < 0.95 ? "neck" : "over your head";
+}
+// prone paddling pose: the board floats on the surface, the surfer lies on it facing the beach
+function drawLying(g, x, surfY, pxFt, ink, ink2, sand) {
+  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, th = Math.max(5, 0.45 * pxFt), Hs = (heightIn / 12) * pxFt;
+  const xa = x - L / 2, xb = x + L / 2, ya = surfY(xa), yb = surfY(xb), ang = Math.atan2(yb - ya, xb - xa);
+  g.save(); g.translate(x, (ya + yb) / 2 - th * 0.25); g.rotate(ang);
+  g.fillStyle = sand; g.strokeStyle = ink; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(-L / 2, 0); g.quadraticCurveTo(0, -th * 0.9, L / 2, 0); g.quadraticCurveTo(0, th * 0.6, -L / 2, 0); g.fill(); g.stroke();
+  g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
+  const lx = -L * 0.38, top = -th * 0.55; // tail end of the body, resting on the deck
+  g.lineWidth = 0.075 * Hs; g.beginPath(); g.moveTo(lx, top); g.lineTo(lx + 0.45 * Hs, top - 0.02 * Hs); g.stroke();          // legs and hips
+  g.lineWidth = 0.17 * Hs; g.beginPath(); g.moveTo(lx + 0.4 * Hs, top - 0.03 * Hs); g.lineTo(lx + 0.8 * Hs, top - 0.07 * Hs); g.stroke(); // torso
+  g.lineWidth = 0.05 * Hs; g.beginPath(); g.moveTo(lx + 0.78 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.88 * Hs, top - 0.2 * Hs); g.stroke(); // neck
+  g.beginPath(); g.arc(lx + 0.93 * Hs, top - 0.24 * Hs, 0.065 * Hs, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(lx + 0.7 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.78 * Hs, top + 0.04 * Hs); g.stroke();                 // arm in the water
+  g.restore();
+  g.fillStyle = ink2; g.fillText(`You, ${fmtIn(heightIn)}, lying on a ${B.label.split(" ")[0].toLowerCase()}`, x - L / 2, Math.min(surfY(x), ya) - 0.5 * Hs - 20);
+}
 function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
   const H = (heightIn / 12) * pxFt, top = base - H, Y = f => top + f * H;
-  const bw0 = BOARDS[boardKey].width * pxFt;
-  x = x - 0.2 * H - bw0 - 6; // stand just inside the shorebreak so the waves stay visible
   g.save(); g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
   // head and neck
   g.beginPath(); g.ellipse(x, Y(0.065), 0.052 * H, 0.065 * H, 0, 0, Math.PI * 2); g.fill();
@@ -1527,6 +1630,7 @@ function crossAt(segs, key, val) {
 let view = { x: 0, y: 0, w: MAP.W, h: MAP.H };
 function applyView() {
   const svg = $("map"); svg.setAttribute("viewBox", `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`);
+  svg.style.touchAction = view.w < MAP.W - 1 ? "none" : "pan-y"; // zoomed in: one finger moves the map; zoomed out: the page scrolls
   const px = 0.5 * MAP.S * (svg.clientWidth || MAP.W) / view.w; $("scaleBar").style.width = px.toFixed(0) + "px";
 }
 function zoomBy(f, cx, cy) {
@@ -1545,9 +1649,44 @@ function zoomBy(f, cx, cy) {
   });
   const end = () => { drag = null; svg.style.cursor = ""; }; svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
   svg.addEventListener("wheel", ev => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(ev.deltaY < 0 ? 0.85 : 1 / 0.85, view.x + (ev.clientX - r.left) / r.width * view.w, view.y + (ev.clientY - r.top) / r.height * view.h); }, { passive: false });
+  // pinch with two fingers
+  const pts = new Map(); let pinch = null;
+  const toMap = (cx, cy) => { const r = svg.getBoundingClientRect(); return [view.x + (cx - r.left) / r.width * view.w, view.y + (cy - r.top) / r.height * view.h]; };
+  svg.addEventListener("pointerdown", ev => { if (ev.pointerType !== "touch") return; pts.set(ev.pointerId, [ev.clientX, ev.clientY]); if (pts.size === 2) { drag = null; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  svg.addEventListener("pointermove", ev => {
+    if (ev.pointerType !== "touch" || !pts.has(ev.pointerId)) return; pts.set(ev.pointerId, [ev.clientX, ev.clientY]);
+    if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > 8) { const [mx, my] = toMap((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); zoomBy(pinch / d, mx, my); pinch = d; } }
+  });
+  const up = ev => { pts.delete(ev.pointerId); if (pts.size < 2) pinch = null; };
+  svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
   window.addEventListener("resize", applyView);
 })();
 const arrowSvg = deg => `<svg viewBox="-10 -10 20 20" width="18" height="18" aria-hidden="true" style="transform:rotate(${deg}deg);flex:none"><path d="M0,8 V-7 M0,-8 L-5,-1 M0,-8 L5,-1" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+/* ---------- my location: asks the browser for permission, stays on this device, nothing is sent anywhere ---------- */
+let LOC = null, locWatch = null, locMsg = "";
+function drawMe() {
+  const me = document.getElementById("me"); if (!me) return;
+  if (!LOC) { me.innerHTML = ""; return; }
+  const [x, y] = mapXY(LOC.lat, LOC.lon);
+  if (x < -40 || x > MAP.W + 40 || y < -40 || y > MAP.H + 40) { me.innerHTML = ""; return; }
+  const accPx = clamp((LOC.acc || 30) * MAP.S / 1000, 6, 80); // map units are km x 240, so 1 m = 0.24 units
+  me.innerHTML = `<circle cx="${x}" cy="${y}" r="${accPx}" fill="#2a7de1" fill-opacity="0.15" stroke="#2a7de1" stroke-opacity="0.35"/><circle cx="${x}" cy="${y}" r="8" fill="#2a7de1" stroke="#fff" stroke-width="3" filter="url(#sh)"/>`;
+}
+function setLocMsg(t) { locMsg = t; const n = document.getElementById("locMsg"); if (n) n.textContent = t; }
+function stopLoc() { if (locWatch != null) navigator.geolocation.clearWatch(locWatch); locWatch = null; LOC = null; $("locBtn").setAttribute("aria-pressed", "false"); setLocMsg(""); drawMe(); }
+$("locBtn").onclick = () => {
+  if (locWatch != null) { stopLoc(); return; }
+  if (!navigator.geolocation) { setLocMsg("Your browser can't share its location."); return; }
+  setLocMsg("Asking your device for your location…");
+  locWatch = navigator.geolocation.watchPosition(pos => {
+    LOC = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    $("locBtn").setAttribute("aria-pressed", "true");
+    const [x, y] = mapXY(LOC.lat, LOC.lon), inside = x >= 0 && x <= MAP.W && y >= 0 && y <= MAP.H;
+    setLocMsg(inside ? "Blue dot: you are here (accurate to about " + Math.round(LOC.acc) + " m)." : "You're not near Pacific Beach, so the dot is off this map.");
+    drawMe();
+  }, err => { locWatch = null; $("locBtn").setAttribute("aria-pressed", "false"); setLocMsg(err.code === 1 ? "Location is blocked. Allow it in your browser's site settings to see the dot." : "Couldn't get your location right now."); },
+  { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+};
 function renderMap() {
   const h0 = HOURS_DATA[selected]; if (!h0) return;
   const svg = $("map"), coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1];
@@ -1616,7 +1755,8 @@ function renderMap() {
       <text class="rt" x="${x}" y="${y + 5}">${r.rating.toFixed(1)}</text>
     </g>`;
   }
-  svg.innerHTML = g;
+  svg.innerHTML = g + `<g id="me"></g>`;
+  drawMe();
   svg.querySelectorAll(".pin").forEach(pin => {
     pin.onclick = () => switchSpot(pin.dataset.k);
     pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } };
@@ -1643,6 +1783,7 @@ function renderMap() {
       <ul><li>Free street parking near the beach fills early on sunny weekends. The <a href="https://www.sandiego.org/things-to-do/beaches/pacific-beach" target="_blank" rel="noopener">visitor guide</a> suggests the Tourmaline St lot and the side streets north of the pier, and says there are pockets of parking near Grand Ave and Pacific Beach Dr.</li>
       <li>Garnet Ave between Mission Blvd and Fanuel St, plus parts of Cass, Bayard and Hornblend, got meters in a city pilot that began in November 2023: 10 am to 8 pm, $1.25 an hour, 2-hour limit, free on Sundays <a href="https://digital-release.fox5sandiego.com/news/local-news/pacific-beach-parking-meters-now-active/amp/" target="_blank" rel="noopener">(Fox 5)</a>. Rules can change, so read the posted signs.</li>
       <li>Parking a few blocks inland and walking is usually easier than circling near Crystal Pier, Grand Ave and Mission Blvd <a href="https://parkmobile.io/parking/locations/ca/san-diego-parking/neighbourhood/pacific-beach" target="_blank" rel="noopener">(Parkmobile)</a>.</li></ul></details>
+    <p class="about"><a class="linkbtn" id="appleMaps" href="https://maps.apple.com/?daddr=${sp.lat},${sp.lon}&dirflg=d" target="_blank" rel="noopener noreferrer">Open ${sp.name} in Apple Maps ↗</a> <span class="muted">Opens directions from where you are. On a phone with Apple Maps it opens the app; otherwise the Apple Maps website.</span></p>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
   $("toRating").onclick = () => { showTab("details"); $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
 }
@@ -1665,7 +1806,7 @@ function switchSpot(k) {
   renderSpot(); refresh();
 }
 /* ---------- tabs, fine-tune sheet, Today screen ---------- */
-const TABS = ["today", "details", "forecast", "map", "accuracy", "about"];
+const TABS = ["today", "forecast", "details", "map", "accuracy", "about"];
 function showTab(name, focus) {
   if (!TABS.includes(name)) name = "today";
   for (const t of TABS) { const on = t === name; $("tab-" + t).hidden = !on; const b = $("tabbtn-" + t); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; }
@@ -1694,12 +1835,24 @@ function dayWord(key) {
   const tom = la(Date.now() + 86400000).key; if (key === tom) return "tomorrow";
   const [Y, M, D] = key.split("-").map(Number); return fmtWk.format(new Date(Date.UTC(Y, M - 1, D, 19)));
 }
+/* Names the biggest reason a rating is not higher, in plain words. */
+function whyText(h) {
+  const sc = h.sc, P = profile();
+  const items = [["size", sc.size], ["wind", sc.wind], ["period", sc.period], ["tide", sc.tide], ["direction", sc.direction]].sort((a, b) => a[1] - b[1]);
+  const [k, v] = items[0];
+  if (v >= 0.85) return "Everything lines up: size, wind, swell and tide all score well.";
+  if (k === "size") return h.face < P.size[0] ? "Waves are smaller than your board likes." : "Waves are bigger than your board likes.";
+  if (k === "wind") return h.mph != null && h.mph >= 3.5 && windKind(h.mph, h.windDir) !== "Offshore" ? "Wind is " + windKind(h.mph, h.windDir).toLowerCase() + " (" + Math.round(h.mph) + " mph)." : "Wind is hurting the surface.";
+  if (k === "period") return "Swell period is short, so the waves are weak.";
+  if (k === "tide") return "Tide is outside this break's best range.";
+  return "Swell is blocked here: it comes from a direction this break does not see well.";
+}
 function renderToday() {
   if (!HOURS_DATA.length) return;
   const board = BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey), now = Date.now();
   const per = Object.keys(SPOTS).map(k => ({ k, name: SPOTS[k].name, wins: withSpot(k, () => computeWindows().map(w => {
     const b = w.best, s0 = SCORED[b.idx[0]], e0 = SCORED[b.idx[b.idx.length - 1]], mid = SCORED[b.idx[Math.floor(b.idx.length / 2)]];
-    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face };
+    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face, why: whyText(mid) };
   })) }));
   const first = per.reduce((a, p) => (p.wins.length && (!a || p.wins[0].key < a) ? p.wins[0].key : a), null);
   if (!first) { $("answer").innerHTML = `<p class="muted">No daylight hours left in the forecast yet.</p>`; $("rank").innerHTML = ""; return; }
@@ -1709,10 +1862,11 @@ function renderToday() {
   if (top.w.avg >= WORTH_IT) {
     const nowIn = top.w.s <= now && now < top.w.e;
     line = `${nowIn ? "Best now" : "Best " + dw}: <b>${top.name}</b>, ${top.w.avg.toFixed(1)}/10 for your ${board}, ${windowText(top.w.s, top.w.e)}`;
+    sub = "Why this rating: " + top.w.why;
   } else {
     line = `Nothing worth paddling out for ${dw}.`;
     const later = per.flatMap(p => p.wins.filter(w => w.key !== first && w.avg >= WORTH_IT).map(w => ({ name: p.name, w }))).sort((a, b) => b.w.avg - a.w.avg)[0];
-    sub = later ? `Next good window: ${dayWord(later.w.key)} at ${later.name}, ${later.w.avg.toFixed(1)}/10, ${windowText(later.w.s, later.w.e)}.` : "Nothing good in the next few days either. Check back tomorrow.";
+    sub = "Why this rating: " + top.w.why + " " + (later ? `Next good window: ${dayWord(later.w.key)} at ${later.name}, ${later.w.avg.toFixed(1)}/10, ${windowText(later.w.s, later.w.e)}.` : "Nothing good in the next few days either. Check back tomorrow.");
   }
   $("answer").innerHTML = `<span class="badge" style="background:var(${rc.c})"><b class="num">${top.w.avg.toFixed(1)}</b><i>${rc.label}</i></span>
     <div><p class="eyebrow">${top.w.avg >= WORTH_IT ? "The best call" : "The call"}</p><h2 class="line">${line}</h2>${sub ? `<p class="subline">${sub}</p>` : ""}</div>`;
@@ -1754,6 +1908,7 @@ function renderMini() {
 }
 
 // The next 24 hours as a row of colored bars (rating), one tap per hour.
+let stripTipIdx = null;
 function renderStrip() {
   const el = $("strip"); if (!SCORED.length) return;
   const n = Math.min(24, SCORED.length);
@@ -1764,10 +1919,33 @@ function renderStrip() {
   }
   el.innerHTML = h + `</div>`;
   el.querySelectorAll(".sbar").forEach(b => b.onclick = () => select(+b.dataset.i));
-  const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Tap a bar for another hour.` : "";
+  const stip = $("stripTip"), swrap = $("stripWrap");
+  const showS = b => {
+    const x = SCORED[+b.dataset.i]; if (!x) return;
+    stip.innerHTML = tipHTML(x); stip.hidden = false;
+    const wr = swrap.getBoundingClientRect(), br = b.getBoundingClientRect(), tw = stip.offsetWidth;
+    stip.style.left = clamp(br.left - wr.left + br.width / 2 - tw / 2, 4, Math.max(4, wr.width - tw - 4)) + "px";
+    stip.style.top = Math.max(4, br.top - wr.top - stip.offsetHeight - 8) + "px";
+  };
+  const hideS = () => { stip.hidden = true; };
+  el.querySelectorAll(".sbar").forEach(b => {
+    b.addEventListener("pointerenter", ev => { if (ev.pointerType === "mouse") showS(b); });
+    b.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse") hideS(); });
+    b.addEventListener("focus", () => showS(b)); b.addEventListener("blur", hideS);
+    b.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse") { stripTipIdx = +b.dataset.i; showS(b); } });
+  });
+  if (stripTipIdx != null) { const kb = el.querySelector(`.sbar[data-i="${stripTipIdx}"]`); if (kb) showS(kb); }
+  document.onpointerdown = ev => { if (!ev.target.closest || !ev.target.closest("#strip")) { stripTipIdx = null; $("stripTip").hidden = true; } };
+  const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Hover or tap a bar for details.` : "";
 }
 matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
 renderSpot();
+renderRunSeg();
+(function poseInit() {
+  const seg = $("poseSeg");
+  const paint = () => { seg.innerHTML = [["stand", "Standing"], ["lie", "Lying on board"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${poseKey === k}">${l}</button>`).join(""); seg.querySelectorAll("button").forEach(b => b.onclick = () => { poseKey = b.dataset.k; store.set("waive.pose", poseKey); paint(); }); };
+  paint();
+})();
 loadScorecard();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
