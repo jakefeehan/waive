@@ -229,6 +229,16 @@ th { font: 500 0.72rem var(--font-data); text-transform: uppercase; letter-spaci
 .prose p { margin: 0; }
 footer { font-size: 0.82rem; color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.suitchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 0.84rem var(--font-body); cursor: pointer; }
+.suitchip:hover { border-color: var(--sea); } .suitchip:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+.suitchip.none { cursor: default; color: var(--ink-2); font-weight: 500; }
+.suitrow { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.suitrow small { color: var(--ink-2); font-size: 0.8rem; }
+.runseg { display: inline-flex; gap: 6px; margin-top: 4px; } .runseg button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 0.88rem var(--font-body); cursor: pointer; }
+.runseg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+#suitDlg { max-width: min(92vw, 440px); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 18px 20px; }
+#suitDlg::backdrop { background: rgba(15, 42, 51, 0.45); } #suitDlg p { margin: 8px 0; line-height: 1.5; }
 </style>
 <style id="redesign">
 /* ===== Redesign: calm, spacious, bold type; tabs; phone first ===== */
@@ -502,6 +512,7 @@ header.top > .answer { order: 0; }
 
   <main>
   <div class="tabpanel" id="tab-today" role="tabpanel" aria-labelledby="tabbtn-today">
+    <div class="suitrow" id="suitRow"></div>
     <div class="duo">
     <section aria-label="All breaks ranked">
       <div class="sechead"><h2>All breaks</h2><p class="muted" id="rankSub">Ranked for your board.</p></div>
@@ -637,6 +648,8 @@ header.top > .answer { order: 0; }
     <div class="prose">
       <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
       <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
+      <p>On the scale, Fair is about 5 to 7, Good is 7 and up, and Epic is 8.5 and up.</p>
+      <p><b>Wetsuit suggestion.</b> The chip next to the water temperature comes only from the Torrey Pines buoy's measured water temperature, never an estimate. If the buoy has no reading it says so. In Fine-tune you can say whether you run cold or warm, and the suggestion moves one step thicker or thinner. It is a general guide, not advice for your body.</p>
       <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
     </div>
 
@@ -657,10 +670,16 @@ header.top > .answer { order: 0; }
   <footer><span class="free"><b>Free, no ads, no sign-up.</b></span> Prototype. Wave face heights are estimates. Always check the water yourself before paddling out.</footer>
 </div>
 
+<dialog id="suitDlg" aria-labelledby="suitTitle">
+  <div class="sheethead"><h2 id="suitTitle" style="margin:0;font-size:1.1rem">What to wear</h2><button type="button" id="suitClose" aria-label="Close">×</button></div>
+  <div id="suitBody"></div>
+</dialog>
+
 <dialog id="tuneDlg" class="sheet" aria-labelledby="tuneTitle">
   <div class="sheethead"><h2 id="tuneTitle">Fine-tune</h2><button type="button" id="tuneClose" aria-label="Close">×</button></div>
   <p class="board-about" id="boardAbout"></p>
   <p class="muted" id="skillAbout" style="margin:0"></p>
+  <div style="margin:12px 0 0"><b style="font-size:.9rem">In the water I run</b><br><span class="runseg" id="runSeg"></span><p class="muted" style="margin:6px 0 0;font-size:.82rem">Shifts the wetsuit suggestion one step thicker or thinner.</p></div>
   <div class="tune-grid" id="tune"></div>
   <p class="muted" style="margin:14px 0 0;font-size:.85rem">Changes are saved in this browser for each board. <button class="linkbtn" id="resetBoard" type="button">Reset this board</button></p>
 </dialog>
@@ -1076,6 +1095,48 @@ function tideTrend(h) {
 }
 function nextHilo(t) { return HILO.find(x => x.t > t); }
 
+
+/* ---------- wetsuit suggestion: from the buoy's measured water temperature only, never a model guess ---------- */
+const SUITS = [
+  { short: "Boardshorts", full: "Boardshorts or a rash guard (or a thin 1mm top)." },
+  { short: "2mm shorty", full: "A 2mm shorty or springsuit." },
+  { short: "3/2 fullsuit", full: "A 3/2 fullsuit (3 mm thick on the chest, 2 mm on the arms and legs)." },
+  { short: "3/2 fullsuit, boots if windy", full: "A 3/2 fullsuit, plus boots if it is windy." },
+  { short: "4/3 fullsuit + boots", full: "A 4/3 fullsuit with boots." },
+  { short: "4/3 or 5/4 + boots, hood or gloves", full: "A 4/3 or 5/4 fullsuit with boots and a hood or gloves." },
+  { short: "5/4 + boots, hood, gloves", full: "A 5/4 fullsuit with boots, a hood and gloves." },
+];
+let runKey = store.get("waive.run"); if (!["cold", "normal", "warm"].includes(runKey)) runKey = "normal";
+function suitFor(tF) {
+  const base = tF >= 72 ? 0 : tF >= 68 ? 1 : tF >= 64 ? 2 : tF >= 60 ? 3 : tF >= 56 ? 4 : tF >= 52 ? 5 : 6;
+  const idx = clamp(base + (runKey === "cold" ? 1 : runKey === "warm" ? -1 : 0), 0, SUITS.length - 1);
+  return { base, idx, suit: SUITS[idx] };
+}
+function suitChipHTML() {
+  if (!BUOY || BUOY.wtmpC == null) return `<span class="suitchip none">No water temperature right now</span>`;
+  const tF = BUOY.wtmpC * 9 / 5 + 32, r = suitFor(tF);
+  return `<button type="button" class="suitchip" data-suit aria-haspopup="dialog" title="Tap for what this means">🌡 ${Math.round(tF)}°F: ${r.suit.short}</button>`;
+}
+function openSuit() {
+  if (!BUOY || BUOY.wtmpC == null) return;
+  const tF = BUOY.wtmpC * 9 / 5 + 32, r = suitFor(tF), h = SCORED[selected];
+  const when = `${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))}`;
+  const windy = h && h.mph != null && h.mph >= 12;
+  $("suitBody").innerHTML = `<p><b>${Math.round(tF)}°F water</b>, measured ${when} by the Torrey Pines buoy.</p>
+    <p><b>Suggestion:</b> ${r.suit.full}</p>
+    ${runKey !== "normal" ? `<p>I shifted this one step ${runKey === "cold" ? "thicker" : "thinner"} because you said you run ${runKey}. You can change that in Fine-tune.</p>` : ""}
+    <p>Wetsuit sizes: the first number is how thick the suit is on your chest and the second on your arms and legs, in millimeters. Thicker means warmer but stiffer. Boots, a hood and gloves keep your hands, feet and head from going numb.</p>
+    <p>If it is windy, or you get cold easily, go one step thicker or add boots. ${windy ? `Wind is ${Math.round(h.mph)} mph at the selected hour, so the air will feel colder than the water.` : ""}</p>
+    <p class="muted" style="font-size:.84rem">This is a general guide from the water temperature only. Everyone's cold tolerance is different.</p>`;
+  $("suitDlg").showModal();
+}
+document.addEventListener("click", ev => { const b = ev.target.closest && ev.target.closest("[data-suit]"); if (b) openSuit(); });
+$("suitClose").onclick = () => $("suitDlg").close();
+function renderSuit() { const r = $("suitRow"); if (r) r.innerHTML = suitChipHTML() + `<small>${BUOY && BUOY.wtmpC != null ? "from the buoy's water temperature" : ""}</small>`; }
+function renderRunSeg() {
+  $("runSeg").innerHTML = [["cold", "Cold"], ["normal", "Normal"], ["warm", "Warm"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${runKey === k}">${l}</button>`).join("");
+  $("runSeg").querySelectorAll("button").forEach(b => b.onclick = () => { runKey = b.dataset.k; store.set("waive.run", runKey); renderRunSeg(); renderSuit(); renderNow(); });
+}
 function renderNow() {
   const h = SCORED[selected]; if (!h) return;
   const rc = ratingClass(h.rating);
@@ -1092,9 +1153,10 @@ function renderNow() {
     ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${Math.round(exposure(h.dir) * 100)}% open` : ""],
     ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "")],
     ["Tide", h.tide != null ? `${h.tide.toFixed(1)} ft ${tideTrend(h)}` : "–", nh ? `${nh.type === "H" ? "High" : "Low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""],
-    ["Water", water, waterSub],
+    ["Water", water + (BUOY && BUOY.wtmpC != null ? " " + suitChipHTML() : ""), waterSub],
     ["Buoy now", BUOY ? `${mToFt(BUOY.hs).toFixed(1)} ft @ ${BUOY.dpd} s` : "–", BUOY ? (BUOY.sample ? "Sample (Oct 16 reading)" : `${degToCompass(BUOY.mwd)} · ${fmtTime.format(new Date(BUOY.t))}`) : ""],
   ];
+  renderSuit();
   $("facts").innerHTML = facts.map(([k, v, s]) => `<div class="fact"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`).join("");
   const P = spotProfile();
   const why = {
@@ -1803,6 +1865,7 @@ function renderStrip() {
 }
 matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
 renderSpot();
+renderRunSeg();
 loadScorecard();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
