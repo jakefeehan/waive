@@ -617,8 +617,8 @@ header.top > .answer { order: 0; }
         <div class="mapwrap">
           <svg id="map" viewBox="0 0 600 640" role="group" aria-label="Map of the Pacific Beach breaks and streets, north at the top"></svg>
           <div class="mapchips" id="mapChips"></div>
-          <div class="mapctl"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomReset" aria-label="Reset map view">⌂</button></div>
-          <div class="mapnote"><div class="north" aria-hidden="true">N</div><div class="scale"><i id="scaleBar"></i><span>500 m</span></div></div>
+          <div class="mapctl"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomReset" aria-label="Reset map view">⌂</button><button type="button" id="locBtn" aria-label="Show my location" aria-pressed="false" title="Show my location">◎</button></div>
+          <div class="mapnote" id="mapNote"><span id="locMsg" role="status" style="position:absolute;left:0;bottom:46px;width:max-content;max-width:230px;font-size:.78rem;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.2)"></span><div class="north" aria-hidden="true">N</div><div class="scale"><i id="scaleBar"></i><span>500 m</span></div></div>
         </div>
         <div class="maplegend">
           <span><svg width="16" height="16" viewBox="-9 -11 18 20" aria-hidden="true"><path d="M-6,6 V-1 L0,-9 L6,-1 V6 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/></svg>Lifeguard tower</span>
@@ -1630,6 +1630,7 @@ function crossAt(segs, key, val) {
 let view = { x: 0, y: 0, w: MAP.W, h: MAP.H };
 function applyView() {
   const svg = $("map"); svg.setAttribute("viewBox", `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`);
+  svg.style.touchAction = view.w < MAP.W - 1 ? "none" : "pan-y"; // zoomed in: one finger moves the map; zoomed out: the page scrolls
   const px = 0.5 * MAP.S * (svg.clientWidth || MAP.W) / view.w; $("scaleBar").style.width = px.toFixed(0) + "px";
 }
 function zoomBy(f, cx, cy) {
@@ -1648,9 +1649,44 @@ function zoomBy(f, cx, cy) {
   });
   const end = () => { drag = null; svg.style.cursor = ""; }; svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
   svg.addEventListener("wheel", ev => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(ev.deltaY < 0 ? 0.85 : 1 / 0.85, view.x + (ev.clientX - r.left) / r.width * view.w, view.y + (ev.clientY - r.top) / r.height * view.h); }, { passive: false });
+  // pinch with two fingers
+  const pts = new Map(); let pinch = null;
+  const toMap = (cx, cy) => { const r = svg.getBoundingClientRect(); return [view.x + (cx - r.left) / r.width * view.w, view.y + (cy - r.top) / r.height * view.h]; };
+  svg.addEventListener("pointerdown", ev => { if (ev.pointerType !== "touch") return; pts.set(ev.pointerId, [ev.clientX, ev.clientY]); if (pts.size === 2) { drag = null; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  svg.addEventListener("pointermove", ev => {
+    if (ev.pointerType !== "touch" || !pts.has(ev.pointerId)) return; pts.set(ev.pointerId, [ev.clientX, ev.clientY]);
+    if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > 8) { const [mx, my] = toMap((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); zoomBy(pinch / d, mx, my); pinch = d; } }
+  });
+  const up = ev => { pts.delete(ev.pointerId); if (pts.size < 2) pinch = null; };
+  svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
   window.addEventListener("resize", applyView);
 })();
 const arrowSvg = deg => `<svg viewBox="-10 -10 20 20" width="18" height="18" aria-hidden="true" style="transform:rotate(${deg}deg);flex:none"><path d="M0,8 V-7 M0,-8 L-5,-1 M0,-8 L5,-1" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+/* ---------- my location: asks the browser for permission, stays on this device, nothing is sent anywhere ---------- */
+let LOC = null, locWatch = null, locMsg = "";
+function drawMe() {
+  const me = document.getElementById("me"); if (!me) return;
+  if (!LOC) { me.innerHTML = ""; return; }
+  const [x, y] = mapXY(LOC.lat, LOC.lon);
+  if (x < -40 || x > MAP.W + 40 || y < -40 || y > MAP.H + 40) { me.innerHTML = ""; return; }
+  const accPx = clamp((LOC.acc || 30) * MAP.S / 1000, 6, 80); // map units are km x 240, so 1 m = 0.24 units
+  me.innerHTML = `<circle cx="${x}" cy="${y}" r="${accPx}" fill="#2a7de1" fill-opacity="0.15" stroke="#2a7de1" stroke-opacity="0.35"/><circle cx="${x}" cy="${y}" r="8" fill="#2a7de1" stroke="#fff" stroke-width="3" filter="url(#sh)"/>`;
+}
+function setLocMsg(t) { locMsg = t; const n = document.getElementById("locMsg"); if (n) n.textContent = t; }
+function stopLoc() { if (locWatch != null) navigator.geolocation.clearWatch(locWatch); locWatch = null; LOC = null; $("locBtn").setAttribute("aria-pressed", "false"); setLocMsg(""); drawMe(); }
+$("locBtn").onclick = () => {
+  if (locWatch != null) { stopLoc(); return; }
+  if (!navigator.geolocation) { setLocMsg("Your browser can't share its location."); return; }
+  setLocMsg("Asking your device for your location…");
+  locWatch = navigator.geolocation.watchPosition(pos => {
+    LOC = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    $("locBtn").setAttribute("aria-pressed", "true");
+    const [x, y] = mapXY(LOC.lat, LOC.lon), inside = x >= 0 && x <= MAP.W && y >= 0 && y <= MAP.H;
+    setLocMsg(inside ? "Blue dot: you are here (accurate to about " + Math.round(LOC.acc) + " m)." : "You're not near Pacific Beach, so the dot is off this map.");
+    drawMe();
+  }, err => { locWatch = null; $("locBtn").setAttribute("aria-pressed", "false"); setLocMsg(err.code === 1 ? "Location is blocked. Allow it in your browser's site settings to see the dot." : "Couldn't get your location right now."); },
+  { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+};
 function renderMap() {
   const h0 = HOURS_DATA[selected]; if (!h0) return;
   const svg = $("map"), coast = smooth(COAST), top = COAST[0], bot = COAST[COAST.length - 1];
@@ -1719,7 +1755,8 @@ function renderMap() {
       <text class="rt" x="${x}" y="${y + 5}">${r.rating.toFixed(1)}</text>
     </g>`;
   }
-  svg.innerHTML = g;
+  svg.innerHTML = g + `<g id="me"></g>`;
+  drawMe();
   svg.querySelectorAll(".pin").forEach(pin => {
     pin.onclick = () => switchSpot(pin.dataset.k);
     pin.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); switchSpot(pin.dataset.k); } };
@@ -1746,6 +1783,7 @@ function renderMap() {
       <ul><li>Free street parking near the beach fills early on sunny weekends. The <a href="https://www.sandiego.org/things-to-do/beaches/pacific-beach" target="_blank" rel="noopener">visitor guide</a> suggests the Tourmaline St lot and the side streets north of the pier, and says there are pockets of parking near Grand Ave and Pacific Beach Dr.</li>
       <li>Garnet Ave between Mission Blvd and Fanuel St, plus parts of Cass, Bayard and Hornblend, got meters in a city pilot that began in November 2023: 10 am to 8 pm, $1.25 an hour, 2-hour limit, free on Sundays <a href="https://digital-release.fox5sandiego.com/news/local-news/pacific-beach-parking-meters-now-active/amp/" target="_blank" rel="noopener">(Fox 5)</a>. Rules can change, so read the posted signs.</li>
       <li>Parking a few blocks inland and walking is usually easier than circling near Crystal Pier, Grand Ave and Mission Blvd <a href="https://parkmobile.io/parking/locations/ca/san-diego-parking/neighbourhood/pacific-beach" target="_blank" rel="noopener">(Parkmobile)</a>.</li></ul></details>
+    <p class="about"><a class="linkbtn" id="appleMaps" href="https://maps.apple.com/?daddr=${sp.lat},${sp.lon}&dirflg=d" target="_blank" rel="noopener noreferrer">Open ${sp.name} in Apple Maps ↗</a> <span class="muted">Opens directions from where you are. On a phone with Apple Maps it opens the app; otherwise the Apple Maps website.</span></p>
     <button class="linkbtn" type="button" id="toRating">See the full rating and best times for ${sp.name} ↓</button>`;
   $("toRating").onclick = () => { showTab("details"); $("ratingPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
 }
