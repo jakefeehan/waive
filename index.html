@@ -478,8 +478,8 @@ header.top > .answer { order: 0; }
       <span class="logo"><img class="logo-light" src="assets/v2-light.svg" alt="Waive"><img class="logo-dark" src="assets/v2-dark.svg" alt="" aria-hidden="true"></span>
       <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
     <button type="button" role="tab" id="tabbtn-today" data-tab="today" aria-controls="tab-today" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.6"/><path d="M3 17c2.5-2 4.5-2 6-0.8s3.5 1.2 6 0 4.5-1.2 6 .8"/><path d="M3 21c2.5-2 4.5-2 6-.8s3.5 1.2 6 0 4.5-1.2 6 .8"/></svg><span>Today</span></button>
-    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
     <button type="button" role="tab" id="tabbtn-forecast" data-tab="forecast" aria-controls="tab-forecast" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20V8" transform="translate(-1 0)"/></svg><span>Forecast</span></button>
+    <button type="button" role="tab" id="tabbtn-details" data-tab="details" aria-controls="tab-details" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Details</span></button>
     <button type="button" role="tab" id="tabbtn-map" data-tab="map" aria-controls="tab-map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span>Map</span></button>
     <button type="button" role="tab" id="tabbtn-accuracy" data-tab="accuracy" aria-controls="tab-accuracy" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" /></svg><span>Accuracy</span></button>
     <button type="button" role="tab" id="tabbtn-about" data-tab="about" aria-controls="tab-about" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>About</span></button>
@@ -522,22 +522,11 @@ header.top > .answer { order: 0; }
     </section>
   </div>
 
-  <div class="tabpanel" id="tab-details" role="tabpanel" aria-labelledby="tabbtn-details" hidden>
-    <section class="panel now" id="ratingPanel" aria-label="Rating">
-      <div class="score">
-        <span class="eyebrow" id="whenEyebrow">Right now</span>
-        <h1 id="spotName">Tourmaline</h1>
-        <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
-        <div class="big num" id="scoreBig">–<small>/10</small></div>
-        <span class="label" id="scoreLabel">–</span>
-        <span class="when muted" id="scoreWhen"></span>
-      </div>
-      <div>
-        <div class="facts" id="facts"></div>
-        <div class="reality" id="reality"></div>
-      </div>
+  <div class="tabpanel" id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast" hidden>
+    <section aria-label="Best time per day">
+      <div class="sechead"><h2>Best time to go</h2><p class="muted">One line per day, for your board and skill. Tap a line to load that hour.</p></div>
+      <ul class="bestlines" id="bestLines"></ul>
     </section>
-
     <section aria-label="Forecast">
       <div class="sechead">
         <h2>3 Day Forecast</h2>
@@ -553,6 +542,31 @@ header.top > .answer { order: 0; }
       <span><i style="background:var(--night)"></i>Dark</span>
     </div>
 
+    </section>
+    <section aria-label="Best times">
+      <div class="sechead"><h2>Day by day</h2><p class="muted">Daylight hours only, rated for your board. Tap a day to load its best hour.</p></div>
+      <div class="days" id="days"></div>
+    </section>
+    <section aria-label="Why this rating" class="panel">
+      <div class="sechead"><h2>Why this rating</h2><p class="muted" id="whyNote">How each factor scores at the hour you picked.</p></div>
+      <div class="factors" id="factors"></div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tab-details" role="tabpanel" aria-labelledby="tabbtn-details" hidden>
+    <section class="panel now" id="ratingPanel" aria-label="Rating">
+      <div class="score">
+        <span class="eyebrow" id="whenEyebrow">Right now</span>
+        <h1 id="spotName">Tourmaline</h1>
+        <span class="muted" id="spotArea">Pacific Beach, San Diego</span>
+        <div class="big num" id="scoreBig">–<small>/10</small></div>
+        <span class="label" id="scoreLabel">–</span>
+        <span class="when muted" id="scoreWhen"></span>
+      </div>
+      <div>
+        <div class="facts" id="facts"></div>
+        <div class="reality" id="reality"></div>
+      </div>
     </section>
 
     <section aria-label="What the waves look like">
@@ -580,20 +594,6 @@ header.top > .answer { order: 0; }
     </section>
   </div>
 
-  <div class="tabpanel" id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast" hidden>
-    <section aria-label="Best time per day">
-      <div class="sechead"><h2>Best time to go</h2><p class="muted">One line per day, for your board and skill. Tap a line to load that hour.</p></div>
-      <ul class="bestlines" id="bestLines"></ul>
-    </section>
-    <section aria-label="Best times">
-      <div class="sechead"><h2>Day by day</h2><p class="muted">Daylight hours only, rated for your board. Tap a day to load its best hour.</p></div>
-      <div class="days" id="days"></div>
-    </section>
-    <section aria-label="Why this rating" class="panel">
-      <div class="sechead"><h2>Why this rating</h2><p class="muted" id="whyNote">How each factor scores at the hour you picked.</p></div>
-      <div class="factors" id="factors"></div>
-    </section>
-  </div>
 
   <div class="tabpanel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map" hidden>
     <section aria-label="Map of the breaks">
@@ -1665,7 +1665,7 @@ function switchSpot(k) {
   renderSpot(); refresh();
 }
 /* ---------- tabs, fine-tune sheet, Today screen ---------- */
-const TABS = ["today", "details", "forecast", "map", "accuracy", "about"];
+const TABS = ["today", "forecast", "details", "map", "accuracy", "about"];
 function showTab(name, focus) {
   if (!TABS.includes(name)) name = "today";
   for (const t of TABS) { const on = t === name; $("tab-" + t).hidden = !on; const b = $("tabbtn-" + t); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; }
