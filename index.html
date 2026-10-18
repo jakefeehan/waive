@@ -193,7 +193,7 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 
 /* timeline */
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-#tlwrap { position: relative; }
+#tlwrap, .stripwrap { position: relative; }
 .tip { position: absolute; z-index: 2; pointer-events: none; min-width: 190px; max-width: 240px; padding: 10px 12px; border-radius: 8px;
   background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(15, 42, 51, 0.18); font-size: 0.84rem; line-height: 1.45; }
 .tip b { font-family: var(--font-display); font-size: 1rem; }
@@ -516,8 +516,8 @@ header.top > .answer { order: 0; }
 
 
     <section aria-label="Next 24 hours" class="stripsec">
-      <div class="sechead"><h2>Next 24 hours</h2><p class="muted" id="stripSub">Tap an hour to see it.</p></div>
-      <div class="panel strip" id="strip" role="group" aria-label="Rating for each of the next 24 hours"></div>
+      <div class="sechead"><h2>Next 24 hours</h2><p class="muted" id="stripSub">Hover or tap an hour for details, click to load it.</p></div>
+      <div class="stripwrap" id="stripWrap"><div id="stripTip" class="tip" hidden></div><div class="panel strip" id="strip" role="group" aria-label="Rating for each of the next 24 hours"></div></div>
       <button type="button" class="more" data-goto="details">See the full forecast, wave animation and details →</button>
     </section>
   </div>
@@ -1232,6 +1232,14 @@ function renderDays() {
   $("days").querySelectorAll(".day").forEach(d => d.onclick = () => select(+d.dataset.i));
 }
 
+function tipHTML(h) {
+  const rc = ratingClass(h.rating);
+  return `<b>${fmtDay.format(new Date(h.t))}, ${hourLabel(h.t)}</b><br><span class="rt" style="background:var(${rc.c})">${h.rating.toFixed(1)}/10 ${rc.label}</span>
+      <dl><dt>Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
+      <dt>Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
+      <dt>Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
+      <dt>Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+}
 function renderTimeline() {
   const svg = $("timeline"), W = 1000, L = 34, R = 8, step = (W - L - R) / HOURS;
   const x = i => L + i * step;
@@ -1293,11 +1301,7 @@ function renderTimeline() {
     const h = SCORED[i]; if (!h) return;
     hov.setAttribute("x", x(i)); hov.style.display = "";
     const rc = ratingClass(h.rating);
-    tip.innerHTML = `<b>${fmtDay.format(new Date(h.t))}, ${hourLabel(h.t)}</b><br><span class="rt" style="background:var(${rc.c})">${h.rating.toFixed(1)}/10 ${rc.label}</span>
-      <dl><dt>Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
-      <dt>Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
-      <dt>Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
-      <dt>Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+    tip.innerHTML = tipHTML(h);
     tip.hidden = false;
     const wr = wrap.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
     let left = ev.clientX - wr.left + wrap.scrollLeft + 14;
@@ -1767,6 +1771,7 @@ function renderMini() {
 }
 
 // The next 24 hours as a row of colored bars (rating), one tap per hour.
+let stripTipIdx = null;
 function renderStrip() {
   const el = $("strip"); if (!SCORED.length) return;
   const n = Math.min(24, SCORED.length);
@@ -1777,7 +1782,24 @@ function renderStrip() {
   }
   el.innerHTML = h + `</div>`;
   el.querySelectorAll(".sbar").forEach(b => b.onclick = () => select(+b.dataset.i));
-  const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Tap a bar for another hour.` : "";
+  const stip = $("stripTip"), swrap = $("stripWrap");
+  const showS = b => {
+    const x = SCORED[+b.dataset.i]; if (!x) return;
+    stip.innerHTML = tipHTML(x); stip.hidden = false;
+    const wr = swrap.getBoundingClientRect(), br = b.getBoundingClientRect(), tw = stip.offsetWidth;
+    stip.style.left = clamp(br.left - wr.left + br.width / 2 - tw / 2, 4, Math.max(4, wr.width - tw - 4)) + "px";
+    stip.style.top = Math.max(4, br.top - wr.top - stip.offsetHeight - 8) + "px";
+  };
+  const hideS = () => { stip.hidden = true; };
+  el.querySelectorAll(".sbar").forEach(b => {
+    b.addEventListener("pointerenter", ev => { if (ev.pointerType === "mouse") showS(b); });
+    b.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse") hideS(); });
+    b.addEventListener("focus", () => showS(b)); b.addEventListener("blur", hideS);
+    b.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse") { stripTipIdx = +b.dataset.i; showS(b); } });
+  });
+  if (stripTipIdx != null) { const kb = el.querySelector(`.sbar[data-i="${stripTipIdx}"]`); if (kb) showS(kb); }
+  document.onpointerdown = ev => { if (!ev.target.closest || !ev.target.closest("#strip")) { stripTipIdx = null; $("stripTip").hidden = true; } };
+  const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Hover or tap a bar for details.` : "";
 }
 matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
 renderSpot();
