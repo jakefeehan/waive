@@ -233,7 +233,12 @@ footer { font-size: 0.82rem; color: var(--ink-2); }
 .suitchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 0.84rem var(--font-body); cursor: pointer; }
 .suitchip:hover { border-color: var(--sea); } .suitchip:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
 .suitchip.none { cursor: default; color: var(--ink-2); font-weight: 500; }
-.suitrow { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.suitrow { margin: 0 0 12px; }
+.wear { display: flex; gap: 16px; align-items: center; width: 100%; text-align: left; padding: 14px 18px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+button.wear:hover { border-color: var(--sea); } .wear:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+.wear h3 { margin: 2px 0; font-size: 1.05rem; }
+.wear .wtemp { display: grid; font: 700 1.9rem/1 var(--font-display); min-width: 4.2ch; } .wear .wtemp small { font: 500 .75rem var(--font-body); color: var(--ink-2); }
+.wear .wtxt { display: grid; gap: 2px; min-width: 0; } .wear .wtxt b { font: 700 1.15rem var(--font-display); } .wear .wsm { font-size: .78rem; }
 .suitrow small { color: var(--ink-2); font-size: 0.8rem; }
 .runseg { display: inline-flex; gap: 6px; margin-top: 4px; } .runseg button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 0.88rem var(--font-body); cursor: pointer; }
 .runseg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
@@ -1134,7 +1139,17 @@ function openSuit() {
 }
 document.addEventListener("click", ev => { const b = ev.target.closest && ev.target.closest("[data-suit]"); if (b) openSuit(); });
 $("suitClose").onclick = () => $("suitDlg").close();
-function renderSuit() { const r = $("suitRow"); if (r) r.innerHTML = suitChipHTML() + `<small>${BUOY && BUOY.wtmpC != null ? "from the buoy's water temperature" : ""}</small>`; }
+function renderSuit() {
+  const r = $("suitRow"); if (!r) return;
+  if (!BUOY || BUOY.wtmpC == null) { r.innerHTML = `<div class="wear"><div><span class="eyebrow">What to wear</span><h3>No water temperature right now</h3><p class="muted">The buoy has no water reading, so waive won't guess a suit.</p></div></div>`; return; }
+  const tF = BUOY.wtmpC * 9 / 5 + 32, x = suitFor(tF), h = SCORED[selected], windy = h && h.mph != null && h.mph >= 12;
+  const when = BUOY.sample ? "sample reading" : `measured ${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))}`;
+  r.innerHTML = `<button type="button" class="wear" data-suit aria-haspopup="dialog">
+    <span class="wtemp num">${Math.round(tF)}°F<small>water</small></span>
+    <span class="wtxt"><span class="eyebrow">What to wear</span><b>${x.suit.short}</b>
+      <span class="muted">${x.suit.full}${runKey !== "normal" ? ` Shifted one step ${runKey === "cold" ? "thicker" : "thinner"} because you run ${runKey}.` : ""}${windy ? ` Wind is ${Math.round(h.mph)} mph, so consider one step warmer.` : ""}</span>
+      <span class="muted wsm">From the Torrey Pines buoy, ${when}. Tap for more.</span></span></button>`;
+}
 function renderRunSeg() {
   $("runSeg").innerHTML = [["cold", "Cold"], ["normal", "Normal"], ["warm", "Warm"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${runKey === k}">${l}</button>`).join("");
   $("runSeg").querySelectorAll("button").forEach(b => b.onclick = () => { runKey = b.dataset.k; store.set("waive.run", runKey); renderRunSeg(); renderSuit(); renderNow(); });
