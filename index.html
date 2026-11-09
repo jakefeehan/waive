@@ -1935,14 +1935,18 @@ function renderStrip() {
   el.innerHTML = h + `</div>`;
   el.querySelectorAll(".sbar").forEach(b => b.onclick = () => select(+b.dataset.i));
   const stip = $("stripTip"), swrap = $("stripWrap");
+  let curBar = null;
   const showS = b => {
-    const x = SCORED[+b.dataset.i]; if (!x) return;
+    const x = SCORED[+b.dataset.i]; if (!x) return; curBar = b;
     stip.innerHTML = tipHTML(x); stip.hidden = false;
-    const wr = swrap.getBoundingClientRect(), br = b.getBoundingClientRect(), tw = stip.offsetWidth;
-    stip.style.left = clamp(br.left - wr.left + br.width / 2 - tw / 2, 4, Math.max(4, wr.width - tw - 4)) + "px";
-    stip.style.top = Math.max(4, br.top - wr.top - stip.offsetHeight - 8) + "px";
+    // kept entirely above (or, if there is no room, below) the strip, so it never covers the bars
+    const wr = swrap.getBoundingClientRect(), sr = el.getBoundingClientRect(), br = b.getBoundingClientRect(), tw = stip.offsetWidth, th = stip.offsetHeight;
+    const aboveY = sr.top - th - 8, y = aboveY >= 8 ? aboveY : sr.bottom + 8;
+    stip.style.left = clamp(br.left + br.width / 2 - tw / 2, 8, Math.max(8, innerWidth - tw - 8)) - wr.left + "px";
+    stip.style.top = (y - wr.top) + "px";
   };
   const hideS = () => { stip.hidden = true; };
+  window.onscroll = () => { if (!stip.hidden && curBar && curBar.isConnected) showS(curBar); };
   el.querySelectorAll(".sbar").forEach(b => {
     b.addEventListener("pointerenter", ev => { if (ev.pointerType === "mouse") showS(b); });
     b.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse") hideS(); });
