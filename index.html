@@ -449,6 +449,8 @@ header.top > .answer { order: 0; }
 .sbar.dark i { opacity: .45; }
 .sbar span { font: 500 0.64rem var(--font-data); color: var(--ink-2); height: 16px; line-height: 16px; white-space: nowrap; }
 .sbar.sel::before { content: ""; position: absolute; inset: -4px -2px 14px; border-radius: 8px; box-shadow: 0 0 0 2px var(--ink); pointer-events: none; }
+.sbar.hov::after { content: ""; position: absolute; inset: -4px -3px 14px; border-radius: 8px; background: var(--sea); opacity: .38; box-shadow: 0 0 0 3px var(--sea); pointer-events: none; }
+.sbar.hov i { filter: saturate(1.25) brightness(1.05); }
 .sbar:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; border-radius: 6px; }
 .more { justify-self: start; font: 600 1rem var(--font-body); color: var(--sea); background: none; border: none; padding: 4px 0; cursor: pointer; text-align: left; }
 .more:hover { text-decoration: underline; }
@@ -1938,6 +1940,7 @@ function renderStrip() {
   let curBar = null;
   const showS = b => {
     const x = SCORED[+b.dataset.i]; if (!x) return; curBar = b;
+    el.querySelectorAll(".sbar.hov").forEach(o => o.classList.remove("hov")); b.classList.add("hov");
     stip.innerHTML = tipHTML(x); stip.hidden = false;
     // kept entirely above (or, if there is no room, below) the strip, so it never covers the bars
     const wr = swrap.getBoundingClientRect(), sr = el.getBoundingClientRect(), br = b.getBoundingClientRect(), tw = stip.offsetWidth, th = stip.offsetHeight;
@@ -1945,7 +1948,7 @@ function renderStrip() {
     stip.style.left = clamp(br.left + br.width / 2 - tw / 2, 8, Math.max(8, innerWidth - tw - 8)) - wr.left + "px";
     stip.style.top = (y - wr.top) + "px";
   };
-  const hideS = () => { stip.hidden = true; };
+  const hideS = () => { stip.hidden = true; el.querySelectorAll(".sbar.hov").forEach(o => o.classList.remove("hov")); };
   window.onscroll = () => { if (!stip.hidden && curBar && curBar.isConnected) showS(curBar); };
   el.querySelectorAll(".sbar").forEach(b => {
     b.addEventListener("pointerenter", ev => { if (ev.pointerType === "mouse") showS(b); });
@@ -1954,7 +1957,7 @@ function renderStrip() {
     b.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse") { stripTipIdx = +b.dataset.i; showS(b); } });
   });
   if (stripTipIdx != null) { const kb = el.querySelector(`.sbar[data-i="${stripTipIdx}"]`); if (kb) showS(kb); }
-  document.onpointerdown = ev => { if (!ev.target.closest || !ev.target.closest("#strip")) { stripTipIdx = null; $("stripTip").hidden = true; } };
+  document.onpointerdown = ev => { if (!ev.target.closest || !ev.target.closest("#strip")) { stripTipIdx = null; $("stripTip").hidden = true; document.querySelectorAll(".sbar.hov").forEach(o => o.classList.remove("hov")); } };
   const s0 = SCORED[selected]; $("stripSub").textContent = s0 ? `${fmtDay.format(new Date(s0.t))}, ${hourLabel(s0.t)}: ${s0.rating.toFixed(1)}/10 at ${SPOT.name}. Hover or tap a bar for details.` : "";
 }
 matchMedia("(max-width: 899px)").addEventListener("change", () => renderMini());
