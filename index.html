@@ -303,6 +303,7 @@ header.top { display: grid; gap: 14px; }
 .tabs button { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-height: 48px; padding: 8px 4px; border: none; background: none; color: var(--ink-2); font: 600 0.72rem var(--font-body); cursor: pointer; border-radius: 14px; transition: color .2s, background .2s; }
 .tabs button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tabs button[aria-selected="true"] { color: var(--sea); }
+@media (hover: hover) { .tabs button { transition: background .15s, color .15s; } .tabs button:not([aria-selected="true"]):hover { background: var(--sea-soft); color: var(--ink); } }
 @media (max-width: 760px) {
   .tabs { position: fixed; inset: auto 0 0 0; z-index: 20; height: calc(var(--tabh) + env(safe-area-inset-bottom, 0px)); padding: 6px 8px env(safe-area-inset-bottom, 0px); background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid var(--line); }
 }
@@ -529,6 +530,12 @@ body { position: relative; }
 .art .fillc { fill: var(--surface); }
 /* theme picker */
 .themeseg { display: inline-flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; } .themeseg button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 .88rem var(--font-body); cursor: pointer; } .themeseg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.conds { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font-size: .86rem; color: rgba(255,255,255,.88); }
+.conds span { display: inline-flex; align-items: center; white-space: nowrap; } .conds .ico { stroke: rgba(255,255,255,.85); }
+.answerart { margin-left: auto; flex: none; align-self: flex-end; opacity: .95; }
+.answerart .art { margin: 0; width: 170px; color: #fff; } .answerart .art .fillc { fill: rgba(255,255,255,.14); } .answerart .art .sand { fill: #fff; opacity: .28; } .answerart .art .sea { stroke: #fff; }
+@media (max-width: 760px) { .answerart { display: none; } }
+.rankrow .who .muted .ico { display: none; }
 </style>
 </head>
 <body>
@@ -735,7 +742,7 @@ body { position: relative; }
   <div class="sheethead"><h2 id="tuneTitle">Fine-tune</h2><button type="button" id="tuneClose" aria-label="Close">×</button></div>
   <p class="board-about" id="boardAbout"></p>
   <p class="muted" id="skillAbout" style="margin:0"></p>
-  <div style="margin:12px 0 0"><b style="font-size:.9rem">Appearance</b><br><span class="themeseg" id="themeSeg" role="group" aria-label="Appearance"></span><p class="muted" style="margin:6px 0 0;font-size:.82rem">Auto turns dark after sunset and light again after sunrise.</p></div>
+  <div style="margin:12px 0 0"><b style="font-size:.9rem">Appearance</b><br><span class="themeseg" id="themeSeg" role="group" aria-label="Appearance"></span><p class="muted" style="margin:6px 0 0;font-size:.82rem">Auto follows your phone or computer's light and dark setting.</p></div>
   <div style="margin:12px 0 0"><b style="font-size:.9rem">In the water I run</b><br><span class="runseg" id="runSeg"></span><p class="muted" style="margin:6px 0 0;font-size:.82rem">Shifts the wetsuit suggestion one step thicker or thinner.</p></div>
   <div class="tune-grid" id="tune"></div>
   <p class="muted" style="margin:14px 0 0;font-size:.85rem">Changes are saved in this browser for each board. <button class="linkbtn" id="resetBoard" type="button">Reset this board</button></p>
@@ -1674,8 +1681,9 @@ function applyLook() {
   const now = Date.now(), ph = sunPhase(now), r = document.documentElement;
   const [a, b, sunO] = SKY[ph];
   r.style.setProperty("--sky-a", a); r.style.setProperty("--sky-b", b); r.style.setProperty("--sun-o", sunO);
-  const want = themeKey === "auto" ? (ph === "night" || ph === "dusk" && now > sunTimes(Date.UTC(la(now).y, la(now).m - 1, la(now).d, 19, 30)).set + 15 * 60000 ? "dark" : "light") : themeKey;
-  if (r.dataset.theme !== want) { r.dataset.theme = want; if (HOURS_DATA.length) { renderNow(); renderTimeline(); } }
+  // Auto leaves the choice to the phone or computer (its light or dark setting); Light and Dark override it
+  const want = themeKey === "auto" ? "" : themeKey;
+  if ((r.dataset.theme || "") !== want) { if (want) r.dataset.theme = want; else delete r.dataset.theme; if (HOURS_DATA.length) { renderNow(); renderTimeline(); } }
 }
 function renderTheme() {
   const seg = $("themeSeg");
@@ -1687,9 +1695,10 @@ function renderOcean() {
   const ft = clamp(mToFt(h.hs || 0.6), 0.5, 10), T = h.period || 10;
   const amp = clamp(3 + ft * 1.4, 3, 14), lam = clamp(160 + T * 12, 200, 420), W = 2400, mid = 22;
   const path = (A, L, ph) => { let d = `M0 34 L0 ${mid}`; for (let x = 0; x <= W; x += 20) d += ` L${x} ${(mid + A * Math.sin((x / L) * 2 * Math.PI + ph)).toFixed(1)}`; return d + ` L${W} 34 Z`; };
-  const n = Math.round(W / lam) || 1, Lexact = W / n; // whole waves fit so the loop is seamless
-  $("oceanA").firstElementChild.setAttribute("d", path(amp, Lexact, 0));
-  $("oceanB").firstElementChild.setAttribute("d", path(amp * .7, W / Math.max(1, Math.round(W / (lam * 1.4))), 1.7));
+  // the strip slides by exactly half its width, so a whole number of waves must fit in that half: the loop never jumps
+  const wl = L => (W / 2) / Math.max(1, Math.round((W / 2) / L));
+  $("oceanA").firstElementChild.setAttribute("d", path(amp, wl(lam), 0));
+  $("oceanB").firstElementChild.setAttribute("d", path(amp * .7, wl(lam * 1.4), 1.7));
   document.documentElement.style.setProperty("--wave-dur", clamp(T * 0.9, 6, 20).toFixed(1) + "s");
 }
 
@@ -1971,12 +1980,20 @@ function whyText(h) {
   if (k === "tide") return "Tide is outside this break's best range.";
   return "Swell is blocked here: it comes from a direction this break does not see well.";
 }
+function condsHTML(m) {
+  if (!m) return "";
+  const wt = BUOY && BUOY.wtmpC != null ? Math.round(BUOY.wtmpC * 9 / 5 + 32) + "°F" : null;
+  const c = [["surf", `${Math.max(0, m.face - 0.5).toFixed(0)}–${Math.ceil(m.face + 0.5)} ft`], ["swell", `${mToFt(m.hs).toFixed(1)} ft @ ${m.period ? m.period.toFixed(0) : "–"} s`],
+    ["wind", m.mph != null ? `${Math.round(m.mph)} mph ${windKind(m.mph, m.windDir).toLowerCase()}` : "wind –"], ["tide", m.tide != null ? `${m.tide.toFixed(1)} ft` : "tide –"]];
+  if (wt) c.push(["temp", wt]);
+  return `<p class="conds">${c.map(([i, t]) => `<span>${ico(i)}${t}</span>`).join("")}</p>`;
+}
 function renderToday() {
   if (!HOURS_DATA.length) return;
   const board = BOARDS[boardKey].label.toLowerCase() + (skillKey === "intermediate" ? "" : ", " + skillKey), now = Date.now();
   const per = Object.keys(SPOTS).map(k => ({ k, name: SPOTS[k].name, wins: withSpot(k, () => computeWindows().map(w => {
     const b = w.best, s0 = SCORED[b.idx[0]], e0 = SCORED[b.idx[b.idx.length - 1]], mid = SCORED[b.idx[Math.floor(b.idx.length / 2)]];
-    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face, why: whyText(mid) };
+    return { key: w.key, avg: b.avg, s: s0.t, e: e0.t + HOUR, face: mid.face, why: whyText(mid), mid };
   })) }));
   const first = per.reduce((a, p) => (p.wins.length && (!a || p.wins[0].key < a) ? p.wins[0].key : a), null);
   if (!first) { $("answer").innerHTML = `<p class="muted">No daylight hours left in the forecast yet.</p>`; $("rank").innerHTML = ""; return; }
@@ -1994,7 +2011,8 @@ function renderToday() {
   }
   const circ = 2 * Math.PI * 42, frac = clamp(top.w.avg / 10, 0, 1);
   $("answer").innerHTML = `<span class="badge ring" role="img" aria-label="${top.w.avg.toFixed(1)} out of 10, ${rc.label}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="42"/><circle class="arc" cx="50" cy="50" r="42" stroke="var(${rc.c})" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${circ.toFixed(1)}" data-off="${(circ * (1 - frac)).toFixed(1)}"/></svg><b class="num">${top.w.avg.toFixed(1)}</b><i>${rc.label}</i></span>
-    <div><p class="eyebrow">${top.w.avg >= WORTH_IT ? "The best call" : "The call"}</p><h2 class="line">${line}</h2>${sub ? `<p class="subline">${sub}</p>` : ""}</div>`;
+    <div><p class="eyebrow">${top.w.avg >= WORTH_IT ? "The best call" : "The call"}</p><h2 class="line">${line}</h2>${sub ? `<p class="subline">${sub}</p>` : ""}${condsHTML(top.w.mid)}</div>
+    <span class="answerart" aria-hidden="true">${breakArt(top.k)}</span>`;
   requestAnimationFrame(() => requestAnimationFrame(() => { const a = $("answer").querySelector(".arc"); if (a) a.style.strokeDashoffset = a.dataset.off; }));
   $("rankSub").textContent = `Best window ${dw}, rated for your ${board}.`;
   $("rank").innerHTML = rows.map((r, i) => { const c = ratingClass(r.w.avg), ok = r.w.avg >= WORTH_IT;
