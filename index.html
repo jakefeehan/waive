@@ -536,6 +536,12 @@ body { position: relative; }
 .answerart .art { margin: 0; width: 170px; color: #fff; } .answerart .art .fillc { fill: rgba(255,255,255,.14); } .answerart .art .sand { fill: #fff; opacity: .28; } .answerart .art .sea { stroke: #fff; }
 @media (max-width: 760px) { .answerart { display: none; } }
 .rankrow .who .muted .ico { display: none; }
+@media (hover: hover) {
+  .spots button, .boards button { transition: background .15s, color .15s, box-shadow .15s, transform .15s; }
+  .spots button:not([aria-pressed="true"]):hover, .boards button:not([aria-pressed="true"]):hover { background: var(--sea-soft); color: var(--ink); box-shadow: inset 0 0 0 2px var(--sea); transform: translateY(-1px); }
+  .spots button[aria-pressed="true"]:hover, .boards button[aria-pressed="true"]:hover { filter: brightness(1.12); }
+  #tuneBtn:hover { background: var(--sea-soft); }
+}
 </style>
 </head>
 <body>
