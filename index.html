@@ -178,10 +178,11 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 .reality .flag { font-size: 0.88rem; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--sea); background: var(--surface); } .reality .flag.warn { border-left-color: var(--r2); } .reality .flag.bad { border-left-color: var(--r1); }
 .reality .s { font-size: 0.8rem; color: var(--ink-2); }
 .factors { display: grid; gap: 10px; margin-top: 18px; }
-.factor { display: grid; grid-template-columns: 80px 1fr 44px; gap: 10px; align-items: center; font-size: 0.88rem; }
+.factor { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; align-items: center; font-size: 0.9rem; }
+.grade { justify-self: start; padding: 2px 12px; border-radius: 999px; font: 700 .82rem var(--font-body); color: #0f2a33; } .grade.good { background: #8fd6b4; } .grade.ok { background: #f0cf6a; } .grade.bad { background: #ee9a8c; }
 .factor .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
 .factor .bar i { display: block; height: 100%; background: var(--sea); border-radius: 4px; }
-.factor .why { grid-column: 2 / 4; margin-top: -6px; color: var(--ink-2); font-size: 0.82rem; }
+.factor .why { grid-column: 2; margin-top: -2px; color: var(--ink-2); font-size: 0.82rem; }
 
 /* windows */
 .days { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
@@ -1217,6 +1218,19 @@ function renderRunSeg() {
   $("runSeg").innerHTML = [["cold", "Cold"], ["normal", "Normal"], ["warm", "Warm"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${runKey === k}">${l}</button>`).join("");
   $("runSeg").querySelectorAll("button").forEach(b => b.onclick = () => { runKey = b.dataset.k; store.set("waive.run", runKey); renderRunSeg(); renderSuit(); renderNow(); });
 }
+/* Plain-word grade for each of the five scores, so nobody has to read a percentage. tone: good, ok or bad. */
+function openWord(e) { return e >= 0.9 ? "wide open" : e >= 0.7 ? "mostly open" : e >= 0.45 ? "partly blocked" : "mostly blocked"; }
+function factorWord(k, h, P) {
+  const v = h.sc[k];
+  const tone = v >= 0.85 ? "good" : v >= 0.6 ? "ok" : "bad";
+  let w;
+  if (k === "size") w = v >= 0.85 ? "Just right" : h.face < P.size[0] ? (v >= 0.6 ? "A bit small" : "Too small") : (v >= 0.6 ? "A bit big" : "Too big");
+  else if (k === "wind") w = h.mph == null ? "Unknown" : h.mph < 3.5 ? "Glassy" : v >= 0.85 ? "Clean" : v >= 0.6 ? "Light chop" : /onshore/i.test(windKind(h.mph, h.windDir)) ? "Choppy" : "Bumpy";
+  else if (k === "period") w = v >= 0.85 ? "Powerful" : v >= 0.6 ? "Decent" : "Weak";
+  else if (k === "tide") w = h.tide == null ? "Unknown" : v >= 0.85 ? "Right tide" : h.tide > (P.tide[0] + P.tide[1]) / 2 ? (v >= 0.6 ? "A bit high" : "Too high") : (v >= 0.6 ? "A bit low" : "Too low");
+  else { const e = exposure(h.dir); w = h.dir == null ? "Unknown" : openWord(e)[0].toUpperCase() + openWord(e).slice(1); return { w, tone: e >= 0.9 ? "good" : e >= 0.55 ? "ok" : "bad" }; }
+  return { w, tone };
+}
 function renderNow() {
   const h = SCORED[selected]; if (!h) return;
   renderOcean();
@@ -1231,7 +1245,7 @@ function renderNow() {
   const waterSub = !BUOY || BUOY.wtmpC == null ? "Buoy has no reading right now" : BUOY.sample ? "Sample reading" : `Measured ${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))} by the Torrey Pines buoy (${Math.round(BUOY.wtmpC * 10) / 10}°C)`;
   const facts = [
     ["Surf", `${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft`, bodyScale(h.face) + `, sets to ${h.setFace.toFixed(0)} ft`],
-    ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${Math.round(exposure(h.dir) * 100)}% open` : ""],
+    ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${openWord(exposure(h.dir))}` : ""],
     ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "")],
     ["Tide", h.tide != null ? `${h.tide.toFixed(1)} ft ${tideTrend(h)}` : "–", nh ? `${nh.type === "H" ? "High" : "Low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""],
     ["Water", water + (BUOY && BUOY.wtmpC != null ? " " + suitChipHTML() : ""), waterSub],
@@ -1244,10 +1258,10 @@ function renderNow() {
     size: h.sc.size >= 0.97 ? `${h.face.toFixed(1)} ft is right in this board's sweet spot` : h.face >= P.size[0] && h.face <= P.size[1] ? `${h.face.toFixed(1)} ft is in your ${P.size[0]}–${P.size[1]} ft range, best around ${(P.size[0] + 0.6 * (P.size[1] - P.size[0])).toFixed(1)} ft` : h.face < P.size[0] ? `${h.face.toFixed(1)} ft is smaller than your ${P.size[0]} ft minimum` : `${h.face.toFixed(1)} ft is bigger than your ${P.size[1]} ft maximum`,
     wind: windKind(h.mph, h.windDir) + (h.mph != null ? ` at ${Math.round(h.mph)} mph` : ""),
     period: `${h.period ? h.period.toFixed(0) : "?"} s period; perfect is ${P.period + 4} s or more for this board`,
-    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${Math.round(exposure(h.dir) * 100)}% open to ${SPOT.name}`,
+    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${openWord(exposure(h.dir))} to ${SPOT.name}`,
     tide: h.tide == null ? "No tide data" : h.tide < P.tide[0] ? `Low for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : `In your ${P.tide[0]}–${P.tide[1]} ft range, best near ${((P.tide[0] + P.tide[1]) / 2).toFixed(1)} ft`,
   };
-  $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
+  $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => { const g = factorWord(k, h, P); return `<div class="factor"><span>${{ size: "Wave size", wind: "Wind", period: "Swell power", tide: "Tide", direction: "Swell direction" }[k]}</span><span class="grade ${g.tone}">${g.w}</span><span class="why">${why[k]}</span></div>`; }).join("");
 }
 
 function renderReality() {
@@ -1911,7 +1925,7 @@ function renderMap() {
   $("mapCard").innerHTML = `${breakArt(spotKey)}<span class="eyebrow">Selected break</span><h3>${sp.name}</h3>
     <div class="rate"><b class="num">${h.rating.toFixed(1)}</b><span style="background:var(${rc.c})">${rc.label}</span></div>
     <dl><dt>${ico('surf')}Surf</dt><dd class="num">${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)} ft (${bodyScale(h.face).toLowerCase()})</dd>
-      <dt>${ico('swell')}Swell</dt><dd class="num">${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s from ${h.dir != null ? degToCompass(h.dir) : "–"}, ${Math.round(exposure(h.dir) * 100)}% open</dd>
+      <dt>${ico('swell')}Swell</dt><dd class="num">${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s from ${h.dir != null ? degToCompass(h.dir) : "–"}, ${openWord(exposure(h.dir))}</dd>
       <dt>${ico('wind')}Wind</dt><dd class="num">${h.mph != null ? Math.round(h.mph) + " mph " + degToCompass(h.windDir) + ", " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
       <dt>${ico('tide')}Tide</dt><dd class="num">${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}${nh ? `, ${nh.type === "H" ? "high" : "low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""}</dd></dl>
     <hr><p class="about">${sp.blurb}</p>
