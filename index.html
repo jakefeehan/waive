@@ -1771,6 +1771,8 @@ const WaveScene = (() => {
      hip, torso angle, neck angle, face direction, wrists (hN near, hF far), elbow bends, ankles (fN near, fF far), knee bends, foot angles, foot length */
   const POSE = {
     prone: { hip: [-.13, -.058], torso: -9, neck: -30, face: 8, hN: [.3, -.03], hF: [.33, -.035], eN: -1, eF: -1, fN: [-.6, -.045], fF: [-.585, -.052], kN: -1, kF: -1, aN: 178, aF: 178, fl: 1 },
+    press: { hip: [-.13, -.055], torso: -4, neck: -22, face: 8, hN: [.15, -.02], hF: [.18, -.024], eN: -1, eF: -1, fN: [-.6, -.045], fF: [-.585, -.052], kN: -1, kF: -1, aN: 178, aF: 178, fl: 1 },
+    land: { hip: [-.045, -.25], torso: -52, neck: -64, face: 3, hN: [-.1, -.35], hF: [.31, -.4], eN: -1, eF: 1, fN: [-.21, -.035], fF: [.17, -.035], kN: -1, kF: -1, aN: 0, aF: 0, fl: .6 },
     push: { hip: [-.12, -.08], torso: -33, neck: -24, face: 6, hN: [.13, -.015], hF: [.16, -.018], eN: -1, eF: -1, fN: [-.58, -.04], fF: [-.56, -.046], kN: -1, kF: -1, aN: 150, aF: 150, fl: 1 },
     tuck: { hip: [-.05, -.2], torso: -47, neck: -45, face: 4, hN: [.1, -.1], hF: [.2, -.12], eN: -1, eF: 1, fN: [-.2, -.035], fF: [.15, -.035], kN: -1, kF: -1, aN: 20, aF: 0, fl: .7 },
     ride: { hip: [-.03, -.33], torso: -62, neck: -72, face: 2, hN: [-.17, -.5], hF: [.35, -.53], eN: -1, eF: 1, fN: [-.21, -.035], fF: [.17, -.035], kN: -1, kF: -1, aN: 0, aF: 0, fl: .6 },
@@ -1795,6 +1797,24 @@ const WaveScene = (() => {
     g.arc(ax, ay, ra, an - PI / 2, an - 3 * PI / 2, true);
     g.closePath(); g.fill();
   }
+  // a whole arm or leg as one bending shape: the joint is a rounded curve, not two rods meeting at a hinge
+  function bent(g, ax, ay, jx, jy, bx, by, w0, wj, w1, b1, s1, b2, s2) {
+    const pts = [], add = (x, y, u) => pts.push([x, y, u]), c1 = .78, c2 = .22;
+    for (let i = 0; i <= 4; i++) { const f = c1 * i / 4; add(lerp(ax, jx, f), lerp(ay, jy, f), f); }
+    const p1x = lerp(ax, jx, c1), p1y = lerp(ay, jy, c1), p2x = lerp(jx, bx, c2), p2y = lerp(jy, by, c2);
+    for (let i = 1; i < 6; i++) { const t = i / 6, a = (1 - t) * (1 - t), b = 2 * t * (1 - t), c = t * t; add(a * p1x + b * jx + c * p2x, a * p1y + b * jy + c * p2y, c1 + (1 + c2 - c1) * t); }
+    for (let i = 0; i <= 4; i++) { const f = c2 + (1 - c2) * i / 4; add(lerp(jx, bx, f), lerp(jy, by, f), 1 + f); }
+    const n = pts.length, L = [], R = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1e-6, nx = -dy / d, ny = dx / d, u = pts[i][2];
+      const w = u <= 1 ? lerp(w0, wj, u) : lerp(wj, w1, u - 1), bu = u <= 1 ? b1 * Math.sin(PI * Math.pow(u, .72)) : b2 * Math.sin(PI * Math.pow(u - 1, .72)), bi = u <= 1 ? s1 : s2;
+      L.push(pts[i][0] + nx * (w + bu * (1 + bi)), pts[i][1] + ny * (w + bu * (1 + bi))); R.push(pts[i][0] - nx * (w + bu * (1 - bi)), pts[i][1] - ny * (w + bu * (1 - bi)));
+    }
+    g.beginPath(); for (let i = 0; i < n; i++) g.lineTo(L[2 * i], L[2 * i + 1]); for (let i = n - 1; i >= 0; i--) g.lineTo(R[2 * i], R[2 * i + 1]); g.closePath(); g.fill();
+    g.beginPath(); g.arc(ax, ay, w0, 0, 2 * PI); g.fill(); g.beginPath(); g.arc(bx, by, w1, 0, 2 * PI); g.fill();
+    return pts;
+  }
+  const stripeOn = (g, pts, col, lw) => { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = g.lineJoin = "round"; g.beginPath(); for (const q of pts) if (q[2] > .3 && q[2] < 1.85) g.lineTo(q[0], q[1]); g.stroke(); };
   // draws the surfer; the caller has already moved/rotated/scaled the canvas so 1 unit = 1 px and the origin is the anchor
   function drawRig(g, p, S, C, mid) {
     const hx = p.hip[0] * S, hy = p.hip[1] * S, ta = p.torso * RAD, ux = Math.cos(ta), uy = Math.sin(ta), nx = -uy, ny = ux; // n points to the chest side
@@ -1803,9 +1823,8 @@ const WaveScene = (() => {
     const leg = (f, bend, ang, c1, c2, stripe) => {
       const ox = hx - ux * .012 * S, oy = hy - uy * .012 * S;
       const [kx, ky, ax, ay] = ik(ox, oy, f[0] * S, f[1] * S, SEG.thigh * S, SEG.shin * S, bend);
-      g.fillStyle = c1; limb(g, ox, oy, kx, ky, .07 * S, .047 * S, .012 * S, -.25); limb(g, kx, ky, ax, ay, .046 * S, .027 * S, .013 * S, .85);
-      g.beginPath(); g.arc(kx, ky, .047 * S, 0, 2 * PI); g.fill();
-      if (stripe && S > 46) { g.strokeStyle = stripe; g.lineWidth = Math.max(1, .011 * S); g.lineCap = "round"; g.beginPath(); g.moveTo(lerp(ox, kx, .3), lerp(oy, ky, .3)); g.lineTo(kx, ky); g.lineTo(lerp(kx, ax, .85), lerp(ky, ay, .85)); g.stroke(); }
+      g.fillStyle = c1; const pts = bent(g, ox, oy, kx, ky, ax, ay, .07 * S, .047 * S, .027 * S, .012 * S, -.25, .013 * S, .85);
+      if (stripe && S > 46) stripeOn(g, pts, stripe, Math.max(1, .011 * S));
       const fa = ang * RAD, fl = SEG.foot * p.fl * S, fx = Math.cos(fa), fy = Math.sin(fa);
       g.fillStyle = c2; g.beginPath(); g.arc(ax, ay, .024 * S, 0, 2 * PI); g.fill();
       capsule(g, ax - fx * .02 * S, ay - fy * .02 * S + .012 * S, ax + fx * fl, ay + fy * fl + .017 * S, .022 * S, .014 * S);
@@ -1813,9 +1832,8 @@ const WaveScene = (() => {
     const arm = (h, bend, c1, c2, stripe) => {
       const ox = sx - ux * .02 * S, oy = sy - uy * .02 * S;
       const [ex, ey, wx, wy] = ik(ox, oy, h[0] * S, h[1] * S, SEG.up * S, SEG.fore * S, bend);
-      g.fillStyle = c1; limb(g, ox, oy, ex, ey, .05 * S, .034 * S, .007 * S, 0); limb(g, ex, ey, wx, wy, .034 * S, .023 * S, .007 * S, -.4);
-      g.beginPath(); g.arc(ex, ey, .034 * S, 0, 2 * PI); g.fill();
-      if (stripe && S > 46) { g.strokeStyle = stripe; g.lineWidth = Math.max(1, .012 * S); g.lineCap = "round"; g.beginPath(); g.moveTo(lerp(ox, ex, .25), lerp(oy, ey, .25)); g.lineTo(ex, ey); g.lineTo(lerp(ex, wx, .8), lerp(ey, wy, .8)); g.stroke(); }
+      g.fillStyle = c1; const pts = bent(g, ox, oy, ex, ey, wx, wy, .05 * S, .034 * S, .023 * S, .007 * S, 0, .007 * S, -.4);
+      if (stripe && S > 46) stripeOn(g, pts, stripe, Math.max(1, .012 * S));
       const fa = Math.atan2(wy - ey, wx - ex); g.fillStyle = c2; g.beginPath(); g.ellipse(wx + Math.cos(fa) * .034 * S, wy + Math.sin(fa) * .034 * S, .044 * S, .025 * S, fa, 0, 2 * PI); g.fill();
     };
     arm(p.hF, p.eF, C.suitFar, C.skinFar);
@@ -1927,35 +1945,39 @@ const WaveScene = (() => {
   /* --- the rider: sit, turn, paddle, pop up, ride, kick out, paddle back --- */
   function rider(F, rt) {
     const { p, spacing, xL, head, zone } = F, c = Math.min(1, p.perSet - 1);
-    const A = clamp(spacing * .5, 70, 120), u0 = 16, d1 = -.72 * A, dEnd = .72 * A - 2 * u0, Dc = dEnd - d1;
-    const P = 20, xK = zone * .8, K = clamp(spacing * .3, 40, 80);
+    const A = clamp(spacing * .55, 84, 130), u0 = 16, d1 = -.62 * A, dEnd = .62 * A - 2 * u0, Dc = dEnd - d1;
+    const P = 30, xK = zone * .8, K = clamp(spacing * .3, 44, 80);
     const kmax = Math.floor((head - xL + A) / spacing), kk = c + p.every * Math.floor((kmax - c) / p.every);
-    const st = { x: xL, face: -1, pose: POSE.sit, k: null, warp: 0, sitTilt: 1, paddle: 0, phase: "wait", u: null, flip: -1 };
+    // th: which way the surfer faces, 0 toward the beach, PI out to sea; lean: how hard they are swinging the board round
+    const st = { x: xL, pose: POSE.sit, k: null, warp: 0, sitTilt: 1, paddle: 0, phase: "wait", th: PI, lean: 0 };
     if (kk < 0) return st;
     const xc = head - kk * spacing, d = xc - xL; st.k = kk;
     const xcPop = xL + dEnd, xcRide = xcPop + P;
-    st.warp = sm((d + A) / 24) * (1 - sm((xc - (xK + K)) / 30));
-    if (d < d1) { const t = sm((d + A) / (A + d1)); st.phase = "turn"; st.pose = mix(POSE.sit, POSE.prone, t); st.flip = -Math.cos(PI * t); st.sitTilt = 1 - t; return st; }
-    if (xc < xcPop) { const e = d - d1; st.phase = "paddle"; st.pose = POSE.prone; st.paddle = 1; st.flip = 1; st.sitTilt = 0; st.x = xL + e * e / (2 * Dc); return st; }
+    st.warp = sm((d + A) / 60) * (1 - sm((xc - (xK + K)) / 90));
+    if (d < d1) { const t = (d + A) / (A + d1), a = sm(t / .62), b = sm((t - .62) / .38); st.phase = "turn"; st.th = PI * (1 - a); st.lean = Math.sin(PI * a); st.pose = mix(POSE.sit, POSE.prone, b); st.sitTilt = 1 - b; return st; }
+    st.th = 0;
+    if (xc < xcPop) { const e = d - d1; st.phase = "paddle"; st.pose = POSE.prone; st.paddle = 1; st.sitTilt = 0; st.x = xL + e * e / (2 * Dc); return st; }
     const w = waveAt(F, kk, xc, true), uRide = w.wf * .5;
+    const seq = (t, steps) => { for (let i = 0; i < steps.length - 1; i++) if (t <= steps[i + 1][0] || i === steps.length - 2) return mix(steps[i][1], steps[i + 1][1], sm((t - steps[i][0]) / (steps[i + 1][0] - steps[i][0]))); };
     if (xc < xcRide) {
-      const t = (xc - xcPop) / P; st.phase = "pop"; st.flip = 1; st.sitTilt = 0;
-      st.pose = t < .3 ? mix(POSE.prone, POSE.push, sm(t / .3)) : t < .65 ? mix(POSE.push, POSE.tuck, sm((t - .3) / .35)) : mix(POSE.tuck, POSE.ride, sm((t - .65) / .35));
-      st.x = xc + lerp(u0, uRide, sm(t)); st.onFace = sm(t); return st;
+      const t = (xc - xcPop) / P; st.phase = "pop"; st.sitTilt = 0;
+      st.pose = seq(t, [[0, POSE.prone], [.14, POSE.press], [.38, POSE.push], [.62, POSE.tuck], [.82, POSE.land], [1, POSE.ride]]);
+      st.x = xc + lerp(u0, uRide, sm(t)); st.onFace = sm(t * 1.4); return st;
     }
     if (xc < xK) {
-      const pump = .5 + .5 * Math.sin(rt * 2.4), ease = sm((xc - xcRide) / 30);
-      st.phase = "ride"; st.flip = 1; st.sitTilt = 0; st.pose = mix(POSE.ride, POSE.trim, pump * .75 * ease); st.x = xc + uRide * lerp(1, lerp(1.18, .62, pump), ease); st.onFace = 1; return st;
+      const pump = .5 + .5 * Math.sin(rt * 2.4), ease = sm((xc - xcRide) / 40);
+      st.phase = "ride"; st.sitTilt = 0; st.pose = mix(POSE.ride, POSE.trim, pump * .75 * ease); st.x = xc + uRide * lerp(1, lerp(1.18, .62, pump), ease); st.onFace = 1; return st;
     }
     const wK = waveAt(F, kk, xK + K, true), xEnd = xK + K - wK.wb * .62;
-    if (xc < xK + K) {
-      const t = (xc - xK) / K; st.phase = "kick"; st.sitTilt = 0; st.onFace = 1 - sm(t * 2);
-      st.pose = t < .45 ? mix(POSE.ride, POSE.trim, sm(t / .45)) : t < .75 ? mix(POSE.trim, POSE.tuck, sm((t - .45) / .3)) : mix(POSE.tuck, POSE.prone, sm((t - .75) / .25));
-      st.flip = t < .7 ? 1 : Math.cos(PI * sm((t - .7) / .3));
+    if (xc < xK + K) { // let the wave go: stand tall, sink down and sit on the board as it passes underneath
+      const t = (xc - xK) / K; st.phase = "kick"; st.onFace = 1 - sm(t * 1.6); st.sitTilt = sm((t - .65) / .35);
+      st.pose = seq(t, [[0, POSE.ride], [.35, POSE.trim], [.65, POSE.land], [1, POSE.sit]]);
       st.x = lerp(xc + uRide * .9, xEnd, sm(t)); return st;
     }
-    const back = .85 * (xc - (xK + K)), x = xEnd - back;
-    if (x > xL) { const t = sm((x - xL) / 14); st.phase = "back"; st.x = x; st.pose = mix(POSE.sit, POSE.prone, t); st.paddle = t; st.sitTilt = 1 - t; st.flip = -1; return st; }
+    const back = .85 * (xc - (xK + K)), T1 = 34, T2 = 18;
+    if (back < T1) { const a = sm(back / T1); st.phase = "back"; st.x = xEnd; st.th = PI * a; st.lean = Math.sin(PI * a); return st; }
+    const x = xEnd - (back - T1);
+    if (x > xL) { const t = Math.min(sm((back - T1) / T2), sm((x - xL) / 16)); st.phase = "back"; st.x = x; st.pose = mix(POSE.sit, POSE.prone, t); st.paddle = t; st.sitTilt = 1 - t; return st; }
     return st;
   }
   function withPaddle(pose, amt, ph) {
@@ -1972,14 +1994,23 @@ const WaveScene = (() => {
     const c = Math.cos(-ang), s = Math.sin(-ang), r = v => [v[0] * c - v[1] * s, v[0] * s + v[1] * c], d = -ang / RAD, o = Object.assign({}, p);
     o.hip = r(p.hip); o.hN = r(p.hN); o.hF = r(p.hF); o.torso = p.torso + d; o.neck = p.neck + d; o.face = p.face + d; return o;
   }
-  // eases the body toward each new pose so movements flow into each other; hands and head trail slightly behind the hips
-  const EASE = { pose: null, rt: 0, key: "" };
+  // a damped spring: values chase their target, overshoot a touch and settle, which is what makes motion read as alive
+  function spring(st, key, target, dt, w, z) {
+    let x = st[key], v = st[key + "v"] || 0;
+    if (x === undefined || !(dt > 0) || dt > .25) { st[key] = target; st[key + "v"] = 0; return target; }
+    const n = Math.max(1, Math.ceil(dt * 120)), h = dt / n; for (let i = 0; i < n; i++) { v += (w * w * (target - x) - 2 * z * w * v) * h; x += v * h; }
+    st[key] = x; st[key + "v"] = v; return x;
+  }
+  // the body springs toward each new pose; hands and head are looser so they trail and settle after the hips
+  const EASE = { s: {}, rt: 0, key: "" }, BS = { s: {}, rt: 0, key: "" }, WS = { s: {}, rt: 0 };
   function eased(target, rt, key) {
-    const dt = rt - EASE.rt, prev = EASE.pose; EASE.rt = rt;
-    if (!prev || key !== EASE.key || dt <= 0 || dt > .25) { EASE.key = key; EASE.pose = target; return target; }
-    const o = {}, kf = 1 - Math.exp(-dt * 20), ks = 1 - Math.exp(-dt * 11);
-    for (const k in target) { const a = prev[k], b = target[k], t = (k === "hN" || k === "hF" || k === "neck" || k === "face") ? ks : kf; o[k] = a === undefined ? b : Array.isArray(b) ? [lerp(a[0], b[0], t), lerp(a[1], b[1], t)] : (k[0] === "e" || k[0] === "k" || k === "straddle") ? b : lerp(a, b, t); }
-    EASE.pose = o; return o;
+    const dt = rt - EASE.rt; EASE.rt = rt; if (key !== EASE.key || !(dt > 0) || dt > .25) EASE.s = {}; EASE.key = key;
+    const o = {};
+    for (const k in target) {
+      const b = target[k], soft = k === "hN" || k === "hF" || k === "neck" || k === "face", foot = k[0] === "f" || k[0] === "a", w = soft ? 12 : foot ? 24 : 17, z = soft ? .58 : foot ? .9 : .68;
+      o[k] = Array.isArray(b) ? [spring(EASE.s, k + 0, b[0], dt, w, z), spring(EASE.s, k + 1, b[1], dt, w, z)] : (k[0] === "e" || k[0] === "k" || k === "straddle") ? b : spring(EASE.s, k, b, dt, w, z);
+    }
+    return o;
   }
   // small living movements layered on a pose: breathing, balance, the roll of a paddle stroke
   function alive(p, rt, kind, amt, ph) {
@@ -1997,7 +2028,7 @@ const WaveScene = (() => {
     const st = pose === "ride" ? rider(F, rt) : null;
     // waves on screen
     const waves = []; const k0 = Math.floor((head - shore - 80) / spacing), k1 = Math.ceil((head + spacing) / spacing);
-    for (let k = Math.max(0, k0); k <= k1; k++) { const xc = head - k * spacing; waves.push(waveAt(F, k, xc, st && st.k === k && st.phase !== "wait" && st.phase !== "back")); }
+    for (let k = Math.max(0, k0); k <= k1; k++) { const xc = head - k * spacing; waves.push(waveAt(F, k, xc, st && st.k === k && st.phase !== "wait")); }
     const chopA = clamp((o.chopFt || 0) * .3 + clamp(((o.windMph || 0) - 6) / 22, 0, 1) * .28, .03, 1.4) * pxFt * lerp(1.15, .85, q);
     const chop = x => chopA * (.55 * Math.sin(x * .16 - t * 2.3) + .28 * Math.sin(x * .27 + t * 3.1 + 1.3) + .3 * Math.sin(x * .093 - t * 1.4 + .7)) * clamp((shore - x) / 30, 0, 1);
     const top = x => { let y = 0, wi = -1, f = 0; for (let i = 0; i < waves.length; i++) { const w = waves[i], u = x - w.xc; if (u >= w.wf || u <= -w.wb) continue; const pf = prof(w, u), yy = w.hp * pf; if (yy > y) { y = yy; wi = i; f = pf; } } return [y, wi, f]; };
@@ -2043,23 +2074,31 @@ const WaveScene = (() => {
       P0.hF = [-(bf.left - xs + 2) / Hpx, -.7]; P0.eF = -1;
       g.translate(xs, fy); g.scale(-1, 1); drawRig(g, P0, Hpx, C);
     } else {
-      let x, ps, flip, tilt = 0, sink = 0;
-      if (pose === "ride") { x = st.x; flip = st.flip; ps = withPaddle(st.pose, st.paddle, paddlePh); tilt = st.sitTilt; }
-      else { x = F.xL; flip = 1; const amt = sm((Math.sin(rt * .55) - .2) * 2.2); ps = withPaddle(POSE.prone, amt, paddlePh * .7); }
+      let x, ps, th = 0, lean = 0, tilt = 0;
+      if (pose === "ride") { x = st.x; th = st.th; lean = st.lean; ps = withPaddle(st.pose, st.paddle, paddlePh); tilt = st.sitTilt; }
+      else { x = F.xL; ps = POSE.prone; }
       const ph = st ? st.phase : "lie", pAmt = st ? st.paddle : sm((Math.sin(rt * .55) - .2) * 2.2);
-      ps = alive(ps, rt, ph === "wait" ? "sit" : ph === "ride" ? "ride" : "paddle", ph === "ride" || ph === "wait" ? 1 : pAmt, paddlePh * (st ? 1 : .7));
-      ps = eased(ps, rt, pose + (flip < 0 ? "L" : "R"));
+      if (!st) ps = withPaddle(ps, pAmt, paddlePh * .7);
+      ps = alive(ps, rt, tilt > .5 ? "sit" : ph === "ride" ? "ride" : "paddle", ph === "ride" || tilt > .5 ? 1 : pAmt, paddlePh * (st ? 1 : .7));
+      // turning: the board swings round under the surfer, so it is seen end on (short) half way through while the body stays broad
+      const ct = Math.cos(th), s2 = 1 - ct * ct, sgn = ct < 0 ? -1 : 1, bodyS = sgn * Math.sqrt(ct * ct + .46 * s2), boardS = sgn * Math.sqrt(ct * ct + .035 * s2);
+      ps = eased(ps, rt, pose + sgn);
       const dx = Math.max(8, B.lenFt * pxFt * .3), ya = base - top(x - dx)[0], yb = base - top(x + dx)[0], y = surfY(x) * .5 + (ya + yb) * .25;
       const slope = Math.atan2(yb - ya, 2 * dx), onFace = st && st.onFace || 0;
-      let rot = clamp(slope, -.34 - .3 * onFace, .34) * lerp(.75, 1, onFace);
-      const dir = Math.abs(flip) < .02 ? .02 : flip, sgn = dir < 0 ? -1 : 1;
+      const rotT = clamp(slope, -.34 - .3 * onFace, .34) * lerp(.75, 1, onFace) * Math.abs(ct), yT = y - Math.max(1.2, .06 * pxFt) - onFace * Math.max(2.5, .16 * pxFt);
+      // the board follows the water with a little give, and the knees soak up what the board does
+      const dtB = rt - BS.rt; BS.rt = rt; if (BS.key !== pose) { BS.s = {}; BS.key = pose; }
+      const yS = spring(BS.s, "y", yT, dtB, 30, .8), rot = spring(BS.s, "r", rotT, dtB, 12, .62), bodyY = spring(BS.s, "b", yT, dtB, 8, .85);
+      const absorb = clamp((bodyY - yS) / Hpx, -.035, .08) * onFace;
+      if (absorb) { ps = Object.assign({}, ps); ps.hip = [ps.hip[0], Math.min(-.16, ps.hip[1] + absorb)]; }
       const boardOff = lerp(lerp(.06, .02, onFace), .12, tilt) * Hpx; // surfer sits a little back of centre
-      g.translate(x, y - Math.max(1.2, .06 * pxFt) - onFace * Math.max(2.5, .16 * pxFt)); g.rotate(rot + sgn * -.07 * tilt); g.scale(dir, 1);
-      let tail = null;
+      g.translate(x, yS); g.rotate(rot + sgn * -.07 * tilt * (1 + 1.6 * lean)); g.scale(bodyS, 1);
+      let tail = null; const br = boardS / bodyS;
       if (onFace > 0) ps = upright(ps, rot * .8 * onFace);
-      drawRig(g, ps, Hpx, C, () => { tail = boardSide(g, B, pxFt, C, boardOff, onFace > .5); });
+      if (lean > 0) { ps = Object.assign({}, ps); ps.torso -= 9 * lean; ps.hN = [ps.hN[0] + .05 * lean, ps.hN[1] - .05 * lean]; ps.fN = [ps.fN[0] - .05 * lean, ps.fN[1] - .03 * lean]; ps.fF = [ps.fF[0] + .04 * lean, ps.fF[1] - .02 * lean]; }
+      drawRig(g, ps, Hpx, C, () => { g.save(); g.scale(br, 1); tail = boardSide(g, B, pxFt, C, boardOff, onFace > .5); g.restore(); });
       // leash from the tail to the back ankle
-      if (tail && Hpx > 40) { const ax = ps.fN[0] * Hpx, ay = ps.fN[1] * Hpx; g.strokeStyle = C.leash; g.lineWidth = Math.max(1, Hpx * .009); g.beginPath(); g.moveTo(tail.tailX, tail.tailY); g.quadraticCurveTo((tail.tailX + ax) / 2 - .05 * Hpx, Math.min(tail.tailY, ay) - .03 * Hpx - Math.abs(ax - tail.tailX) * .08, ax, ay); g.stroke(); }
+      if (tail && Hpx > 40) { const tx = tail.tailX * br, ax = ps.fN[0] * Hpx, ay = ps.fN[1] * Hpx; g.strokeStyle = C.leash; g.lineWidth = Math.max(1, Hpx * .009); g.beginPath(); g.moveTo(tx, tail.tailY); g.quadraticCurveTo((tx + ax) / 2 - .05 * Hpx, Math.min(tail.tailY, ay) - .03 * Hpx - Math.abs(ax - tx) * .08, ax, ay); g.stroke(); }
     }
     g.restore();
 
@@ -2113,10 +2152,11 @@ const WaveScene = (() => {
     let run = 0; for (const w of waves) { const z = (w.xc - shore) / 60; if (z > -.4 && z < 1.6) run = Math.max(run, Math.sin(clamp((z + .4) / 2, 0, 1) * PI) * clamp(w.h * pxFt * .5, 4, 22)); }
     if (run > .5) { g.fillStyle = C.foam; g.globalAlpha = .8; g.beginPath(); g.moveTo(shore - 8, base + 1.5); g.quadraticCurveTo(shore + run * .5, floorY(shore + run * .5) - 2.5, shore + run, floorY(shore + run) - .5); g.quadraticCurveTo(shore + run * .4, floorY(shore + run * .4) + .8, shore - 8, base + 3); g.fill(); g.globalAlpha = 1; }
 
+    const dW = rt - WS.rt; WS.rt = rt; const warpS = st ? spring(WS.s, "w", st.warp, dW, 3, 1) : 0;
     // what the caller needs for captions and timing
     const ref = F.zone * .75, kn = Math.max(0, Math.floor((head - ref) / spacing) + 1);
     let wait = 0; for (let j = kn; j < kn + p.every * 2; j++) if ((j % p.every) < p.perSet) { wait = (j * spacing + ref - head) / v; break; }
-    return { inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: st ? st.warp : 0, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
+    return { inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: warpS, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
   }
   return { draw, bodyScale };
 })();
