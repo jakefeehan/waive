@@ -1,0 +1,25 @@
+name: Probe data sources
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: |
+          UA="waive (github.com/jakefeehan/waive)"
+          show() { echo; echo "=== $1"; curl -sS -m 40 -A "$UA" -w "\nHTTP %{http_code}\n" "$1" | head -c "${2:-1200}"; echo; }
+          show https://www.ndbc.noaa.gov/data/realtime2/46254.txt 900
+          show https://www.ndbc.noaa.gov/data/realtime2/46254.spec 900
+          show https://www.ndbc.noaa.gov/data/realtime2/46225.spec 900
+          show https://www.ndbc.noaa.gov/data/realtime2/46258.spec 700
+          show https://www.ndbc.noaa.gov/data/realtime2/46258.txt 600
+          show "https://marine-api.open-meteo.com/v1/marine?latitude=32.80&longitude=-117.28&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction&forecast_days=1&timezone=GMT" 1500
+          show "https://marine-api.open-meteo.com/v1/marine?latitude=32.80&longitude=-117.28&hourly=wave_height,swell_wave_height&models=ecmwf_wam025,ncep_gfswave025&forecast_days=1&timezone=GMT" 900
+          show "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=9410230&date=recent&units=english&time_zone=gmt&format=json&application=waive" 600
+          echo; echo "=== CORS headers CO-OPS"; curl -sS -I -m 30 -H "Origin: https://jakefeehan.github.io" "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=9410230&date=latest&units=english&time_zone=gmt&format=json&application=waive" | head -20
+          echo; echo "=== CORS headers THREDDS"; curl -sS -I -m 30 -H "Origin: https://jakefeehan.github.io" "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/catalog.xml" | head -20
+          show https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/catalog.xml 2500
+          show https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_grids/catalog.xml 2500
+          show https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_validation/catalog.xml 1500
+          show https://cdip.ucsd.edu/data_access/MOPsites.txt 800
