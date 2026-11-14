@@ -5,21 +5,21 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe CDIP MOP files
+      - name: Probe CDIP MOP sites
         run: |
           python3 - <<'PY'
-          import re, urllib.request, time
+          import urllib.request
           UA = {"User-Agent": "waive (github.com/jakefeehan/waive)"}
-          def get(u, n=3000, to=25):
-              t = time.time()
+          base = "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/"
+          def get(u, n=600):
               try:
-                  with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=to) as r:
-                      b = r.read(n).decode("utf-8", "replace")
-                      return "OK %.1fs\n%s" % (time.time() - t, b)
+                  with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=30) as r:
+                      return r.read(n).decode("utf-8", "replace").replace("\n", " | ")
               except Exception as e:
-                  return "FAIL %s %.1fs" % (e, time.time() - t)
-          base = "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/"
-          for u in [base + "MOP_alongshore/D0549_forecast.nc.das", base + "MOP_alongshore/D0549_nowcast.nc.das",
-                    base + "MOP_grids/B_0.001_forecast.nc.das", base + "MOP_validation/D0549_forecast.nc.das"]:
-              print("=== " + u); print(get(u, 2500)); print()
+                  return "FAIL %s" % e
+          for n in range(500, 700, 10):
+              print("D%04d" % n, get(base + "D%04d_forecast.nc.ascii?metaLatitude,metaLongitude,metaWaterDepth" % n, 400))
+          print("TIME", get(base + "D0549_forecast.nc.ascii?waveTime[0:1:2]"))
+          print("HS", get(base + "D0549_forecast.nc.ascii?waveHs[0:1:2]"))
+          print("DIM", get(base + "D0549_forecast.nc.dds", 800))
           PY
