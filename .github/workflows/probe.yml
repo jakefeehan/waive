@@ -5,48 +5,21 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Probe CDIP MOP nearshore sites
+      - name: Probe CDIP MOP files
         run: |
           python3 - <<'PY'
-          import re, urllib.request
+          import re, urllib.request, time
           UA = {"User-Agent": "waive (github.com/jakefeehan/waive)"}
-          def get(u, n=None):
-              with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60) as r:
-                  b = r.read().decode("utf-8", "replace")
-                  return b if n is None else b[:n]
-          cat = get("https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_alongshore/catalog.xml")
-          names = re.findall(r'urlPath="([^"]+)"', cat)
-          print("alongshore datasets:", len(names)); print(names[:12]); print([n for n in names if "D05" in n][:20])
-          fc = [n for n in names if "forecast" in n]
-          print("forecast ones sample:", fc[:6], len(fc))
-          nc = [n for n in names if "nowcast" in n]
-          print("nowcast sample:", nc[:6], len(nc))
-          # first, one DAS to see which variables exist
-          if names:
-              t = names[0]
-              print("DAS of", t); print(get("https://thredds.cdip.ucsd.edu/thredds/dodsC/%s.das" % t, 3500))
-          PY
-      - name: Which MOP site is nearest Pacific Beach
-        run: |
-          python3 - <<'PY'
-          import re, urllib.request, math
-          UA = {"User-Agent": "waive (github.com/jakefeehan/waive)"}
-          def get(u):
-              with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60) as r:
-                  return r.read().decode("utf-8", "replace")
-          # CDIP station metadata served over the ascii endpoint for candidate San Diego MOP sites
-          found = []
-          for k in range(500, 600):
-              sid = "D%04d" % k
-              for kind in ("nowcast", "forecast"):
-                  u = "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/%s_%s.nc.ascii?metaLatitude,metaLongitude,metaWaterDepth" % (sid, kind)
-                  try:
-                      t = get(u)
-                  except Exception as e:
-                      continue
-                  nums = re.findall(r"-?\d+\.\d+", t)
-                  found.append((sid, kind, nums[:3]))
-                  break
-          for f in found: print(f)
+          def get(u, n=3000, to=25):
+              t = time.time()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=to) as r:
+                      b = r.read(n).decode("utf-8", "replace")
+                      return "OK %.1fs\n%s" % (time.time() - t, b)
+              except Exception as e:
+                  return "FAIL %s %.1fs" % (e, time.time() - t)
+          base = "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/"
+          for u in [base + "MOP_alongshore/D0549_forecast.nc.das", base + "MOP_alongshore/D0549_nowcast.nc.das",
+                    base + "MOP_grids/B_0.001_forecast.nc.das", base + "MOP_validation/D0549_forecast.nc.das"]:
+              print("=== " + u); print(get(u, 2500)); print()
           PY
