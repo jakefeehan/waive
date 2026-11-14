@@ -654,11 +654,11 @@ body { position: relative; }
     <section aria-label="What the waves look like">
       <div class="sechead">
         <h2>What the sets look like</h2>
-        <p class="muted">A side view of the waves at the selected hour, drawn to scale next to a surfer of your height holding your board. Big waves arrive in sets with lulls in between.</p>
+        <p class="muted">A side view of the waves at the selected hour, drawn to scale next to a surfer of your height and your board. The waves follow the forecast: long-period swell is steeper and more spread out, wind chop makes the surface bumpy. Big waves arrive in sets with lulls in between. Heights are to scale; the distance between waves is squeezed to fit.</p>
       </div>
     <div class="two">
       <div class="panel simwrap">
-        <canvas id="sim" aria-label="Animated side view of waves arriving in sets"></canvas>
+        <canvas id="sim" role="img" aria-label="Animated side view of waves arriving in sets, with a surfer of your height for scale"></canvas>
         <div class="simbar">
           <button id="simPlay" type="button">Pause</button>
           <button id="simSpeed" type="button">Speed: 4×</button>
@@ -1719,6 +1719,363 @@ function renderSources() {
   }).join("");
 }
 
+/* ---------- wave scene: illustrated surfer, board and forecast-shaped waves ---------- */
+const WaveScene = (() => {
+  const PI = Math.PI, RAD = PI / 180;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const sm = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+  const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+  const PAL = {
+    light: {
+      skyTop: "#e3eff3", skyLow: "#fbf2de", sun: "#e0b866", glow: "224,184,102",
+      water: ["#49b4c8", "#0f7b93", "#0a586c"], veil: "#0f7b93", shine: "#9fe0ea", foam: "#ffffff", foamShade: "#d7eef3",
+      sand: ["#ecd29d", "#d6b272"], sandLine: "#c09c5c", wet: "#c9a566",
+      suit: "#14333f", suitFar: "#0a2029", suitNear: "#1d4654", stripe: "#e0b866",
+      skin: "#d99e78", skinFar: "#b97f5d", hair: "#2a1c14",
+      board: "#f6ecd4", boardShade: "#dfcfa9", fin: "#14333f", leash: "#14333f",
+      ink: "#0b2530", ink2: "#566f78", line: "rgba(11,37,48,.13)", tag: "#0b6f86"
+    },
+    dark: {
+      skyTop: "#0c1e26", skyLow: "#1b3640", sun: "#e0b866", glow: "224,184,102",
+      water: ["#4dbad0", "#1b7c93", "#10505f"], veil: "#1b7c93", shine: "#8fd3e8", foam: "#eaf7fa", foamShade: "#a9d3de",
+      sand: ["#b99b62", "#8f7646"], sandLine: "#6f5a33", wet: "#80693e",
+      suit: "#dbe7ea", suitFar: "#9fb5bb", suitNear: "#f3f8f9", stripe: "#1b7c93",
+      skin: "#d79c78", skinFar: "#b07a5a", hair: "#3a2619",
+      board: "#f1e6cb", boardShade: "#cdbd96", fin: "#dbe7ea", leash: "#dbe7ea",
+      ink: "#eaf3f5", ink2: "#94adb5", line: "rgba(234,243,245,.13)", tag: "#4fc0d8"
+    }
+  };
+  const BOARD_LOOK = {
+    longboard: { deck: null, band: "#0b6f86", nf: .2, ne: .5, tf: .22, tailW: .38, rockN: .034, fin: 1, finD: .8 },
+    funboard: { deck: null, band: "#e0b866", nf: .3, ne: .68, tf: .28, tailW: .34, rockN: .04, fin: 1, finD: .62 },
+    shortboard: { deck: "#fbfaf4", band: "#d9622b", nf: .5, ne: 1, tf: .3, tailW: .3, rockN: .055, fin: 2, finD: .42 },
+    fish: { deck: "#f0c36f", band: "#fbf3de", nf: .36, ne: .8, tf: .24, tailW: .62, swallow: 1, rockN: .04, fin: 2, finD: .46 },
+    wavestorm: { deck: "#3f9fbb", band: "#ffffff", soft: 1, nf: .2, ne: .5, tf: .14, tailW: .72, rockN: .03, fin: 2, finD: .4 }
+  };
+
+  /* --- drawing helpers --- */
+  function capsule(g, ax, ay, bx, by, ra, rb) {
+    const d = Math.hypot(bx - ax, by - ay) || 1e-6, a = Math.atan2(by - ay, bx - ax), be = Math.acos(clamp((ra - rb) / d, -1, 1));
+    g.beginPath(); g.arc(ax, ay, ra, a + be, a - be + 2 * PI); g.arc(bx, by, rb, a - be, a + be); g.closePath(); g.fill();
+  }
+  function ik(ax, ay, tx, ty, l1, l2, bend) {
+    let dx = tx - ax, dy = ty - ay, d = Math.hypot(dx, dy) || 1e-6; const dm = (l1 + l2) * 0.999;
+    if (d > dm) { dx *= dm / d; dy *= dm / d; d = dm; tx = ax + dx; ty = ay + dy; }
+    const a = Math.atan2(dy, dx), b = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)) * (bend < 0 ? -1 : 1);
+    return [ax + l1 * Math.cos(a + b), ay + l1 * Math.sin(a + b), tx, ty];
+  }
+
+  /* --- poses: side view facing +x, units of body height, origin on the deck (or floor) under the surfer, y up is negative ---
+     hip, torso angle, neck angle, face direction, wrists (hN near, hF far), elbow bends, ankles (fN near, fF far), knee bends, foot angles, foot length */
+  const POSE = {
+    prone: { hip: [-.13, -.058], torso: -9, neck: -30, face: 8, hN: [.3, -.03], hF: [.33, -.035], eN: -1, eF: -1, fN: [-.6, -.045], fF: [-.585, -.052], kN: -1, kF: -1, aN: 178, aF: 178, fl: 1 },
+    push: { hip: [-.12, -.08], torso: -33, neck: -24, face: 6, hN: [.13, -.015], hF: [.16, -.018], eN: -1, eF: -1, fN: [-.58, -.04], fF: [-.56, -.046], kN: -1, kF: -1, aN: 150, aF: 150, fl: 1 },
+    tuck: { hip: [-.05, -.2], torso: -47, neck: -45, face: 4, hN: [.1, -.1], hF: [.2, -.12], eN: -1, eF: 1, fN: [-.2, -.035], fF: [.15, -.035], kN: -1, kF: -1, aN: 20, aF: 0, fl: .7 },
+    ride: { hip: [-.03, -.33], torso: -62, neck: -72, face: 2, hN: [-.17, -.5], hF: [.35, -.53], eN: -1, eF: 1, fN: [-.21, -.035], fF: [.17, -.035], kN: -1, kF: -1, aN: 0, aF: 0, fl: .6 },
+    trim: { hip: [-.02, -.415], torso: -76, neck: -84, face: 0, hN: [-.13, -.5], hF: [.24, -.56], eN: -1, eF: 1, fN: [-.2, -.035], fF: [.16, -.035], kN: -1, kF: -1, aN: 0, aF: 0, fl: .6 },
+    sit: { hip: [-.1, -.06], torso: -77, neck: -86, face: 0, hN: [.06, -.075], hF: [.09, -.08], eN: 1, eF: 1, fN: [.13, .2], fF: [.16, .19], kN: -1, kF: -1, aN: 75, aF: 75, fl: 1, straddle: 1 },
+    stand: { hip: [0, -.515], torso: -88, neck: -90, face: 0, hN: [.015, -.53], hF: [.05, -.56], eN: 1, eF: 1, fN: [-.035, -.035], fF: [.045, -.035], kN: -1, kF: -1, aN: 0, aF: 0, fl: 1 }
+  };
+  function mix(a, b, t) {
+    if (t <= 0) return a; if (t >= 1) return b;
+    const o = {}; for (const k in a) { const x = a[k], y = b[k]; o[k] = Array.isArray(x) ? [lerp(x[0], y[0], t), lerp(x[1], y[1], t)] : (k[0] === "e" || k[0] === "k" || k === "straddle") ? (t < .5 ? x : y) : lerp(x, y === undefined ? x : y, t); }
+    return o;
+  }
+  const SEG = { torso: .3, neck: .105, head: .06, thigh: .245, shin: .235, foot: .115, up: .16, fore: .15 };
+
+  // draws the surfer; the caller has already moved/rotated/scaled the canvas so 1 unit = 1 px and the origin is the anchor
+  function drawRig(g, p, S, C, mid) {
+    const hx = p.hip[0] * S, hy = p.hip[1] * S, ta = p.torso * RAD;
+    const sx = hx + Math.cos(ta) * SEG.torso * S, sy = hy + Math.sin(ta) * SEG.torso * S;
+    const na = p.neck * RAD, cx = sx + Math.cos(na) * SEG.neck * S, cy = sy + Math.sin(na) * SEG.neck * S;
+    const leg = (f, bend, ang, c1, c2) => {
+      const [kx, ky, ax, ay] = ik(hx, hy, f[0] * S, f[1] * S, SEG.thigh * S, SEG.shin * S, bend);
+      g.fillStyle = c1; capsule(g, hx, hy, kx, ky, .06 * S, .043 * S); capsule(g, kx, ky, ax, ay, .043 * S, .026 * S);
+      const fa = ang * RAD, fl = SEG.foot * p.fl * S;
+      g.fillStyle = c2; capsule(g, ax - Math.cos(fa) * .012 * S, ay - Math.sin(fa) * .012 * S + .008 * S, ax + Math.cos(fa) * fl, ay + Math.sin(fa) * fl + .012 * S, .024 * S, .017 * S);
+    };
+    const arm = (h, bend, c1, c2, stripe) => {
+      const ox = sx - Math.cos(ta) * .012 * S, oy = sy - Math.sin(ta) * .012 * S;
+      const [ex, ey, wx, wy] = ik(ox, oy, h[0] * S, h[1] * S, SEG.up * S, SEG.fore * S, bend);
+      g.fillStyle = c1; capsule(g, ox, oy, ex, ey, .043 * S, .032 * S); capsule(g, ex, ey, wx, wy, .032 * S, .023 * S);
+      if (stripe && S > 46) { g.strokeStyle = stripe; g.lineWidth = Math.max(1, .012 * S); g.lineCap = "round"; g.beginPath(); g.moveTo(lerp(ox, ex, .25), lerp(oy, ey, .25)); g.lineTo(ex, ey); g.lineTo(lerp(ex, wx, .8), lerp(ey, wy, .8)); g.stroke(); }
+      const d = Math.hypot(wx - ex, wy - ey) || 1; g.fillStyle = c2; g.beginPath(); g.arc(wx + (wx - ex) / d * .022 * S, wy + (wy - ey) / d * .022 * S, .027 * S, 0, 2 * PI); g.fill();
+    };
+    arm(p.hF, p.eF, C.suitFar, C.skinFar);
+    if (p.straddle) { leg(p.fF, p.kF, p.aF, C.suitFar, C.skinFar); if (mid) mid(); }
+    else { if (mid) mid(); leg(p.fF, p.kF, p.aF, C.suitFar, C.skinFar); }
+    leg(p.fN, p.kN, p.aN, C.suit, C.skin);
+    // torso: hips, waist and chest
+    g.fillStyle = C.suit;
+    const px = -Math.sin(ta), py = Math.cos(ta), fs = Math.cos(p.face * RAD) * px + Math.sin(p.face * RAD) * py >= 0 ? 1 : -1; // chest side
+    capsule(g, hx, hy, sx, sy, .067 * S, .056 * S);
+    g.beginPath(); g.ellipse(lerp(hx, sx, .68) + px * fs * .014 * S, lerp(hy, sy, .68) + py * fs * .014 * S, .1 * S, .071 * S, ta, 0, 2 * PI); g.fill();
+    // neck and head
+    g.fillStyle = C.skin; capsule(g, lerp(sx, cx, .1), lerp(sy, cy, .1), cx, cy, .03 * S, .027 * S);
+    const r = SEG.head * S, fa = p.face * RAD;
+    g.save(); g.beginPath(); g.ellipse(cx, cy, r * .95, r * 1.07, na + PI / 2, 0, 2 * PI); g.fillStyle = C.hair; g.fill(); g.clip();
+    g.fillStyle = C.skin; g.beginPath(); g.arc(cx + Math.cos(fa) * r * .42 - Math.cos(na) * r * .36, cy + Math.sin(fa) * r * .42 - Math.sin(na) * r * .36, r * .93, 0, 2 * PI); g.fill(); g.restore();
+    arm(p.hN, p.eN, C.suitNear, C.skin, C.stripe);
+  }
+
+  // surfboard seen from the side, deck along y = 0, centred on cx; nose toward +x
+  function boardSide(g, B, pxFt, C, cx, noFin) {
+    const K = BOARD_LOOK[B.key] || BOARD_LOOK.longboard, L = B.lenFt * pxFt, t = Math.max(4.4, (K.soft ? .34 : .27) * pxFt), h = L / 2, N = 26;
+    const deck = x => { const u = (x - cx) / h; return -(u > 0 ? K.rockN * 1.25 : .012) * L * Math.pow(Math.abs(u), 2.6); };
+    const foil = x => Math.pow(Math.max(0, 1 - Math.pow(Math.abs((x - cx) / h), 2.8)), .55);
+    // fins under the tail
+    g.fillStyle = C.fin; const fd = K.finD * pxFt, fx = cx - h + L * .11;
+    for (let i = 0; i < (noFin ? 0 : K.fin); i++) { const x0 = fx + i * fd * .75, y0 = deck(x0) + t * .8; g.beginPath(); g.moveTo(x0 + fd * .55, y0); g.quadraticCurveTo(x0 - fd * .05, y0 + fd * .45, x0 - fd * .5, y0 + fd); g.quadraticCurveTo(x0 - fd * .1, y0 + fd * .35, x0 - fd * .25, y0); g.closePath(); g.fill(); }
+    const path = k => { g.beginPath(); for (let i = 0; i <= N; i++) { const x = cx - h + L * i / N; i ? g.lineTo(x, deck(x)) : g.moveTo(x, deck(x)); } for (let i = N; i >= 0; i--) { const x = cx - h + L * i / N; g.lineTo(x, deck(x) + t * foil(x) * k); } g.closePath(); };
+    g.fillStyle = C.boardShade; if (K.soft) g.fillStyle = "#f4f1e6"; path(1); g.fill();
+    g.fillStyle = K.deck || C.board; path(.52); g.fill();
+    g.strokeStyle = K.band; g.lineWidth = Math.max(1.2, t * .16); g.lineCap = "round"; g.beginPath();
+    for (let i = 2; i <= N - 2; i++) { const x = cx - h + L * i / N, y = deck(x) + t * foil(x) * .56; i === 2 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke();
+    return { tailX: cx - h + L * .04, tailY: deck(cx - h + L * .04) };
+  }
+  // surfboard seen face on, standing upright with its tail at (bx, by)
+  function boardFace(g, B, pxFt, C, bx, by) {
+    const K = BOARD_LOOK[B.key] || BOARD_LOOK.longboard, L = B.lenFt * pxFt, w = B.widthFt * pxFt, N = 34;
+    const hw = f => { // f = 0 nose .. 1 tail
+      let k = 1; if (f < K.nf) k = Math.pow(Math.sin(PI / 2 * f / K.nf), K.ne); if (f > 1 - K.tf) { const u = (f - (1 - K.tf)) / K.tf; k = lerp(1, K.tailW, u * u) * Math.pow(Math.max(0, 1 - Math.pow(u, 7)), .5) + (u > .985 ? 0 : 0); }
+      return w / 2 * Math.max(0, k);
+    };
+    const shape = () => { g.beginPath(); for (let i = 0; i <= N; i++) { const f = i / N; g.lineTo(bx + hw(f), by - L + f * L); } if (K.swallow) g.lineTo(bx, by - L * .075); for (let i = N; i >= 0; i--) { const f = i / N; g.lineTo(bx - hw(f), by - L + f * L); } g.closePath(); };
+    g.save(); shape(); g.fillStyle = K.deck || C.board; g.fill(); g.clip();
+    g.fillStyle = "rgba(0,0,0,.07)"; g.fillRect(bx + w * .2, by - L, w, L); // soft shade on one rail
+    g.fillStyle = K.band;
+    if (K.soft) { g.globalAlpha = .9; for (const o of [-.2, 0, .2]) g.fillRect(bx + w * o - w * .025, by - L, w * .05, L); g.globalAlpha = 1; }
+    else if (B.key === "shortboard") { g.beginPath(); g.moveTo(bx - w, by - L * .8); g.lineTo(bx + w, by - L * .88); g.lineTo(bx + w, by - L); g.lineTo(bx - w, by - L); g.fill(); }
+    else if (B.key === "fish") { g.fillRect(bx - w, by - L * .34, w * 2, L * .035); g.fillRect(bx - w, by - L * .28, w * 2, L * .014); }
+    else { g.fillRect(bx - w, by - L * .3, w * 2, L * .075); g.globalAlpha = .55; g.fillRect(bx - w, by - L * .2, w * 2, L * .018); g.globalAlpha = 1; }
+    if (!K.soft) { g.strokeStyle = "rgba(60,40,10,.28)"; g.lineWidth = 1; g.beginPath(); g.moveTo(bx, by - L + 2); g.lineTo(bx, by - (K.swallow ? L * .075 : 2)); g.stroke(); }
+    g.restore();
+    g.save(); shape(); g.strokeStyle = C.boardShade; g.lineWidth = 1.25; g.stroke(); g.restore();
+    return { left: bx - w / 2, right: bx + w / 2, top: by - L };
+  }
+
+  /* --- how big is a wave next to a person: the usual surfer scale --- */
+  function bodyScale(faceFt, heightFt) {
+    const r = faceFt / heightFt;
+    return r < .2 ? "ankle high" : r < .34 ? "knee high" : r < .47 ? "thigh high" : r < .6 ? "waist high" : r < .74 ? "chest high" : r < .87 ? "shoulder high" : r < 1.08 ? "head high" : r < 1.45 ? "overhead" : r < 1.85 ? "well overhead" : r < 2.3 ? "double overhead" : "more than double overhead";
+  }
+
+  /* --- layout and wave field --- */
+  function field(o, W, H) {
+    const p = o.p, Hft = o.heightIn / 12, B = o.board, pose = o.pose;
+    const depthS = Math.max(.3, o.depth0 + (o.tideFt == null ? 3 : o.tideFt));
+    const top = 30;
+    const aboveFt = (pose === "stand" ? Math.max(p.set * 1.25, Math.max(Hft, B.lenFt) - depthS + .3) : pose === "ride" ? Math.max(p.set * 1.25, p.set * .5 + Hft * .95) : Math.max(p.set * 1.3, 2.6)) + .4;
+    const belowFt = (pose === "stand" ? depthS : Math.min(depthS, 3.2)) + (pose === "stand" ? 1.3 : 1.1);
+    let pxFt = (H - top) / (aboveFt + belowFt), base = top + aboveFt * pxFt;
+    if (pose !== "stand") { pxFt = Math.min(pxFt, W * (W < 420 ? .4 : .34) / B.lenFt, H * .3 / Hft); base = clamp(H - belowFt * pxFt, top + aboveFt * pxFt, H * .78); }
+    const Hpx = Hft * pxFt, bw = B.widthFt * pxFt;
+    const shore = W * (W < 420 ? .93 : .9), ramp = Math.max(30, Math.min(W * .16, depthS * pxFt * 1.1));
+    const xs = pose === "stand" ? shore - ramp - bw - .2 * Hpx - 4 : shore - ramp - 12; // where the standing surfer is / inner edge of the surf zone
+    const depthAt = x => x <= xs ? depthS + (xs - x) / pxFt * .05 : depthS * (1 - sm((x - (shore - ramp)) / ramp));
+    const floorY = x => x > shore ? base - (x - shore) * .16 : base + depthAt(x) * pxFt;
+    const T = clamp(p.T || 10, 4, 22), q = clamp((T - 6.5) / 7, 0, 1); // q: 0 short-period windswell .. 1 long-period groundswell
+    const Lpx = B.lenFt * pxFt;
+    const spacing = Math.max(clamp(W / 5.2, 104, 190) * clamp(Math.pow(T / 11, .85), .55, 1.5), pose === "ride" ? Lpx * 2.1 : pose === "lie" ? Lpx * 1.3 : 0);
+    const v = spacing / T, head = o.t * v + W * 1.2;
+    const zone = xs - 6, xL = Math.max(64, pose === "stand" ? 0 : Lpx * .62 + 8, zone * (pose === "ride" ? .3 : .42));
+    return { Lpx, o, p, W, H, Hft, B, pose, depthS, pxFt, base, Hpx, bw, shore, ramp, xs, depthAt, floorY, T, q, spacing, v, head, zone, xL, top, aboveFt };
+  }
+  // shape of one wave for a given crest position
+  function waveAt(F, k, xc, ride) {
+    const { p, q, pxFt, zone, shore, spacing } = F, h = F.o.seq[((k % F.o.seq.length) + F.o.seq.length) % F.o.seq.length];
+    const rel = clamp(h / (p.set * 1.05), 0, 1);
+    const bx = ride ? zone * .97 : F.pose === "lie" ? zone * (.74 + .2 * (1 - rel)) : zone * (.6 + .3 * (1 - rel)); // where it breaks: bigger waves break further out
+    const s = ride ? clamp(1 - (F.xL + 10 - xc) / (zone * .5), 0, 1) : clamp(1 - (bx - xc) / (zone * .62), 0, 1), b = clamp((xc - bx) / (shore + 14 - bx), 0, 1);
+    const amp = b > 0 ? h * Math.pow(1 - b, 1.25) * (1 - .25 * sm(b * 6)) : h * (.5 + .5 * Math.pow(s, 1.4));
+    const hp = amp * pxFt;
+    let wf = b > 0 ? hp * lerp(lerp(1.7, .85, q), 1.1, sm(b * 5)) + 12 : hp * lerp(2.5, lerp(1.7, .85, q), Math.pow(s, 1.6)) + 12;
+    let wb = hp * lerp(2.9, 2.2, s) + 22 + q * 10;
+    if (F.pose === "lie" && b <= 0) { wf = Math.max(wf, F.Lpx * .5); wb = Math.max(wb, F.Lpx * .6); }
+    if (ride) { const g = sm(s * 1.6) * (1 - sm(b * 4)); wf = Math.max(wf, F.Lpx * 1.12 * g); wb = Math.max(wb, F.Lpx * .8 * g); }
+    const tot = wf + wb, cap = spacing * 1.02; if (tot > cap) { wf *= cap / tot; wb *= cap / tot; }
+    return { k, h, xc, bx, s, b, amp, hp, wf, wb, pf: lerp(1.15, lerp(1.5, 2, q), s), lean: b > 0 || ride ? 0 : q * .42 * Math.pow(s, 6), ride, crumble: ride ? sm((xc - F.xL - 20) / (zone * .45)) : 0 };
+  }
+  const prof = (w, u) => u >= 0 ? (u < w.wf ? Math.pow((1 + Math.cos(PI * u / w.wf)) / 2, w.pf) : 0) : (u > -w.wb ? Math.pow((1 + Math.cos(PI * u / w.wb)) / 2, 1.35) : 0);
+
+  /* --- the rider: sit, turn, paddle, pop up, ride, kick out, paddle back --- */
+  function rider(F, rt) {
+    const { p, spacing, xL, head, zone } = F, c = Math.min(1, p.perSet - 1);
+    const A = clamp(spacing * .5, 70, 120), u0 = 16, d1 = -.72 * A, dEnd = .72 * A - 2 * u0, Dc = dEnd - d1;
+    const P = 20, xK = zone * .8, K = clamp(spacing * .3, 40, 80);
+    const kmax = Math.floor((head - xL + A) / spacing), kk = c + p.every * Math.floor((kmax - c) / p.every);
+    const st = { x: xL, face: -1, pose: POSE.sit, k: null, warp: 0, sitTilt: 1, paddle: 0, phase: "wait", u: null, flip: -1 };
+    if (kk < 0) return st;
+    const xc = head - kk * spacing, d = xc - xL; st.k = kk;
+    const xcPop = xL + dEnd, xcRide = xcPop + P;
+    st.warp = sm((d + A) / 24) * (1 - sm((xc - (xK + K)) / 30));
+    if (d < d1) { const t = sm((d + A) / (A + d1)); st.phase = "turn"; st.pose = mix(POSE.sit, POSE.prone, t); st.flip = -Math.cos(PI * t); st.sitTilt = 1 - t; return st; }
+    if (xc < xcPop) { const e = d - d1; st.phase = "paddle"; st.pose = POSE.prone; st.paddle = 1; st.flip = 1; st.sitTilt = 0; st.x = xL + e * e / (2 * Dc); return st; }
+    const w = waveAt(F, kk, xc, true), uRide = w.wf * .5;
+    if (xc < xcRide) {
+      const t = (xc - xcPop) / P; st.phase = "pop"; st.flip = 1; st.sitTilt = 0;
+      st.pose = t < .3 ? mix(POSE.prone, POSE.push, sm(t / .3)) : t < .65 ? mix(POSE.push, POSE.tuck, sm((t - .3) / .35)) : mix(POSE.tuck, POSE.ride, sm((t - .65) / .35));
+      st.x = xc + lerp(u0, uRide, sm(t)); st.onFace = sm(t); return st;
+    }
+    if (xc < xK) {
+      const pump = .5 + .5 * Math.sin(rt * 2.4), ease = sm((xc - xcRide) / 30);
+      st.phase = "ride"; st.flip = 1; st.sitTilt = 0; st.pose = mix(POSE.ride, POSE.trim, pump * .75 * ease); st.x = xc + uRide * lerp(1, lerp(1.18, .62, pump), ease); st.onFace = 1; return st;
+    }
+    const wK = waveAt(F, kk, xK + K, true), xEnd = xK + K - wK.wb * .62;
+    if (xc < xK + K) {
+      const t = (xc - xK) / K; st.phase = "kick"; st.sitTilt = 0; st.onFace = 1 - sm(t * 2);
+      st.pose = t < .45 ? mix(POSE.ride, POSE.trim, sm(t / .45)) : t < .75 ? mix(POSE.trim, POSE.tuck, sm((t - .45) / .3)) : mix(POSE.tuck, POSE.prone, sm((t - .75) / .25));
+      st.flip = t < .7 ? 1 : Math.cos(PI * sm((t - .7) / .3));
+      st.x = lerp(xc + uRide * .9, xEnd, sm(t)); return st;
+    }
+    const back = .85 * (xc - (xK + K)), x = xEnd - back;
+    if (x > xL) { const t = sm((x - xL) / 14); st.phase = "back"; st.x = x; st.pose = mix(POSE.sit, POSE.prone, t); st.paddle = t; st.sitTilt = 1 - t; st.flip = -1; return st; }
+    return st;
+  }
+  function withPaddle(pose, amt, ph) {
+    if (amt <= 0) return pose;
+    const o = Object.assign({}, pose), sx = pose.hip[0] + Math.cos(pose.torso * RAD) * SEG.torso, sy = pose.hip[1] + Math.sin(pose.torso * RAD) * SEG.torso;
+    const hand = a => [sx + .1 + .2 * Math.cos(a), sy + .13 + .135 * Math.sin(a)];
+    const n = hand(ph), f = hand(ph + PI);
+    o.hN = [lerp(pose.hN[0], n[0], amt), lerp(pose.hN[1], n[1], amt)]; o.hF = [lerp(pose.hF[0], f[0], amt), lerp(pose.hF[1], f[1], amt)];
+    return o;
+  }
+
+  // keep the body upright over the feet when the board tips down the face
+  function upright(p, ang) {
+    const c = Math.cos(-ang), s = Math.sin(-ang), r = v => [v[0] * c - v[1] * s, v[0] * s + v[1] * c], d = -ang / RAD, o = Object.assign({}, p);
+    o.hip = r(p.hip); o.hN = r(p.hN); o.hF = r(p.hF); o.torso = p.torso + d; o.neck = p.neck + d; o.face = p.face + d; return o;
+  }
+  function draw(g, W, H, o) {
+    const C = PAL[o.dark ? "dark" : "light"], F = field(o, W, H), { p, pxFt, base, Hpx, shore, xs, floorY, q, spacing, v, head, pose, B } = F;
+    const rt = o.rt, t = o.t, font = o.font || "11px ui-monospace, Menlo, monospace";
+    const st = pose === "ride" ? rider(F, rt) : null;
+    // waves on screen
+    const waves = []; const k0 = Math.floor((head - shore - 80) / spacing), k1 = Math.ceil((head + spacing) / spacing);
+    for (let k = Math.max(0, k0); k <= k1; k++) { const xc = head - k * spacing; waves.push(waveAt(F, k, xc, st && st.k === k && st.phase !== "wait" && st.phase !== "back")); }
+    const chopA = clamp((o.chopFt || 0) * .3 + clamp(((o.windMph || 0) - 6) / 22, 0, 1) * .28, .03, 1.4) * pxFt * lerp(1.15, .85, q);
+    const chop = x => chopA * (.55 * Math.sin(x * .16 - t * 2.3) + .28 * Math.sin(x * .27 + t * 3.1 + 1.3) + .3 * Math.sin(x * .093 - t * 1.4 + .7)) * clamp((shore - x) / 30, 0, 1);
+    const top = x => { let y = 0, wi = -1, f = 0; for (let i = 0; i < waves.length; i++) { const w = waves[i], u = x - w.xc; if (u >= w.wf || u <= -w.wb) continue; const pf = prof(w, u), yy = w.hp * pf; if (yy > y) { y = yy; wi = i; f = pf; } } return [y, wi, f]; };
+    const surfY = x => base - top(x)[0] - chop(x) * .35;
+    // surface polyline, with the crest leaning forward on steep long-period waves
+    const pts = []; const xEnd = shore + 26;
+    for (let x = -8; x <= xEnd; x += 2) { const [y, wi, f] = top(x), w = waves[wi]; pts.push(x + (w ? w.lean * w.hp * Math.pow(f, 2.6) : 0), base - y - chop(x) * (w && w.b > 0 ? .4 : 1)); }
+    const water = () => { g.beginPath(); g.moveTo(-8, H + 2); for (let i = 0; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.lineTo(xEnd, H + 2); g.closePath(); };
+
+    // sky, sun
+    g.clearRect(0, 0, W, H);
+    let gr = g.createLinearGradient(0, 0, 0, base); gr.addColorStop(0, C.skyTop); gr.addColorStop(1, C.skyLow); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const sunX = W * .8, sunY = Math.max(34, Math.min(base - 46, H * .2)), sunR = clamp(W * .034, 11, 19);
+    gr = g.createRadialGradient(sunX, sunY, sunR * .6, sunX, sunY, sunR * 5.5); gr.addColorStop(0, `rgba(${C.glow},${o.dark ? .2 : .34})`); gr.addColorStop(1, `rgba(${C.glow},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H); g.fillStyle = C.sun; g.beginPath(); g.arc(sunX, sunY, sunR, 0, 2 * PI); g.fill();
+    // height ruler
+    g.font = font; g.textBaseline = "middle"; g.fillStyle = C.ink2; g.strokeStyle = C.line; g.lineWidth = 1;
+    const stepFt = [1, 2, 4, 5, 10, 20].find(n => n * pxFt >= 24) || 20;
+    for (let ft = stepFt; base - ft * pxFt > F.top - 6; ft += stepFt) { const y = Math.round(base - ft * pxFt) + .5; g.setLineDash([2, 5]); g.beginPath(); g.moveTo(36, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]); g.fillText(ft + " ft", 6, y); }
+    g.textBaseline = "alphabetic";
+
+    // labels
+    g.font = font; g.fillStyle = C.ink2; g.textAlign = "left";
+    g.fillText(`You ${Math.floor(o.heightIn / 12)}′${o.heightIn % 12}″  ·  ${B.label} ${Math.floor(B.lenFt + 1e-6)}′${Math.round((B.lenFt % 1) * 12)}″`, 8, 16);
+    const sy = Math.round(base - p.set * pxFt) + .5, lab = `sets ${p.set.toFixed(p.set < 10 ? 1 : 0)} ft`;
+    g.strokeStyle = C.tag; g.lineWidth = 1.5; g.beginPath(); g.moveTo(36, sy); g.lineTo(40, sy); g.globalAlpha = .35; g.stroke(); g.globalAlpha = 1;
+    const tw = g.measureText(lab).width; g.fillStyle = o.dark ? "rgba(8,21,27,.78)" : "rgba(255,255,255,.82)"; g.beginPath(); g.roundRect ? g.roundRect(40, sy - 8, tw + 10, 16, 8) : g.rect(40, sy - 8, tw + 10, 16); g.fill();
+    g.fillStyle = C.tag; g.textBaseline = "middle"; g.fillText(lab, 45, sy + .5); g.textBaseline = "alphabetic";
+
+    // water behind the surfer
+    gr = g.createLinearGradient(0, base - p.set * pxFt, 0, H); const mid = clamp(p.set * pxFt / (H - base + p.set * pxFt), .05, .9);
+    gr.addColorStop(0, C.water[0]); gr.addColorStop(mid, C.water[1]); gr.addColorStop(1, C.water[2]);
+    water(); g.fillStyle = gr; g.fill();
+
+    // the surfer
+    const paddlePh = rt * 5.2;
+    g.save();
+    if (pose === "stand") {
+      const fy = floorY(xs), breathe = Math.sin(rt * 1.7) * .004, bob = sm(clamp((base - top(xs)[0] - (fy - .62 * Hpx)) / -(.25 * Hpx), 0, 1));
+      const bcx = xs + .13 * Hpx + F.bw / 2, bf = boardFace(g, B, pxFt, C, bcx, floorY(bcx) + 1);
+      const P0 = Object.assign({}, POSE.stand); P0.hip = [0, -.515 + breathe]; P0.neck = -90 + bob * 6;
+      // far hand rests on the rail of the board (the figure faces the sea, so +x in the rig points left)
+      P0.hF = [-(bf.left - xs + 2) / Hpx, -.7]; P0.eF = -1; P0.hN = [.02 + Math.sin(rt * .9) * .006, -.53];
+      g.translate(xs, fy); g.scale(-1, 1); drawRig(g, P0, Hpx, C);
+    } else {
+      let x, ps, flip, tilt = 0, sink = 0;
+      if (pose === "ride") { x = st.x; flip = st.flip; ps = withPaddle(st.pose, st.paddle, paddlePh); tilt = st.sitTilt; }
+      else { x = F.xL; flip = 1; const amt = sm((Math.sin(rt * .55) - .2) * 2.2); ps = withPaddle(POSE.prone, amt, paddlePh * .7); }
+      if (st && st.phase === "wait") { ps = Object.assign({}, ps); ps.fN = [ps.fN[0] + Math.sin(rt * 1.3) * .03, ps.fN[1]]; ps.fF = [ps.fF[0] - Math.sin(rt * 1.3) * .03, ps.fF[1]]; ps.neck = -86 + Math.sin(rt * .6) * 4; }
+      const dx = Math.max(8, B.lenFt * pxFt * .3), ya = base - top(x - dx)[0], yb = base - top(x + dx)[0], y = surfY(x) * .5 + (ya + yb) * .25;
+      const slope = Math.atan2(yb - ya, 2 * dx), onFace = st && st.onFace || 0;
+      let rot = clamp(slope, -.34 - .3 * onFace, .34) * lerp(.75, 1, onFace);
+      const dir = Math.abs(flip) < .02 ? .02 : flip, sgn = dir < 0 ? -1 : 1;
+      const boardOff = (ps === POSE.sit || tilt > .5 ? .12 : lerp(.06, .02, onFace)) * Hpx; // surfer sits a little back of centre
+      g.translate(x, y - Math.max(1.2, .06 * pxFt) - onFace * Math.max(2.5, .16 * pxFt)); g.rotate(rot + sgn * -.07 * tilt); g.scale(dir, 1);
+      let tail = null;
+      if (onFace > 0) ps = upright(ps, rot * .8 * onFace);
+      drawRig(g, ps, Hpx, C, () => { tail = boardSide(g, B, pxFt, C, boardOff, onFace > .5); });
+      // leash from the tail to the back ankle
+      if (tail && Hpx > 40) { const ax = ps.fN[0] * Hpx, ay = ps.fN[1] * Hpx; g.strokeStyle = C.leash; g.lineWidth = Math.max(1, Hpx * .009); g.beginPath(); g.moveTo(tail.tailX, tail.tailY); g.quadraticCurveTo((tail.tailX + ax) / 2 - .05 * Hpx, Math.min(tail.tailY, ay) - .03 * Hpx - Math.abs(ax - tail.tailX) * .08, ax, ay); g.stroke(); }
+    }
+    g.restore();
+
+    // water in front of the surfer, so the waterline cuts across the body
+    g.save(); water(); g.globalAlpha = o.dark ? .5 : .46; g.fillStyle = C.veil; g.fill(); g.restore();
+    // bright line along the surface
+    g.save(); g.beginPath(); for (let i = 0; i < pts.length; i += 2) i ? g.lineTo(pts[i], pts[i + 1] + 1.4) : g.moveTo(pts[i], pts[i + 1] + 1.4);
+    g.strokeStyle = C.shine; g.globalAlpha = .75; g.lineWidth = 2.2; g.lineJoin = "round"; g.stroke(); g.restore();
+
+    // foam left on the surface behind broken waves
+    g.fillStyle = C.foam;
+    for (const w of waves) { if (w.b <= 0) continue; const x0 = Math.max(w.bx - 4, w.xc - spacing * 1.5); for (let x = Math.ceil(x0 / 7) * 7; x < Math.min(w.xc - w.wb * .5, shore); x += 7) { const n = hash(x * .37 + w.k * 13.1); if (n < .42) continue; const age = (w.xc - x) / (spacing * 1.5), a = (1 - age) * (n - .3); if (a <= 0) continue; g.globalAlpha = clamp(a * 1.2, 0, .85); const y = base - top(x)[0] - chop(x) + 1; g.beginPath(); g.ellipse(x + n * 4, y, 2.5 + n * 4, 1.3, 0, 0, 2 * PI); g.fill(); } }
+    g.globalAlpha = 1;
+    // breaking waves: feathering lip, then a pile of whitewater rolling in
+    for (const w of waves) {
+      if (w.hp < 2) continue;
+      const spill = (1 - q) * .35, feather = w.b > 0 ? 1 : sm((w.s - (.84 - spill)) / (.16 + spill));
+      if (feather <= 0) continue;
+      if (w.b <= 0 && w.ride) { // the ridden wave crumbles from the top, behind the surfer
+        const c = w.crumble; if (c > .02) { const ua = -w.wb * .32 * c, ub = w.wf * .2 * c, n = Math.max(5, Math.round((ub - ua) / 6));
+          for (let pass = 0; pass < 2; pass++) { g.fillStyle = pass ? C.foam : C.foamShade; g.beginPath(); for (let i = 0; i <= n; i++) { const u = lerp(ua, ub, i / n), e = Math.sin(PI * i / n), r = (w.hp * (.07 + .08 * hash(i * 3.3 + w.k)) * (.75 + .25 * Math.sin(rt * 6 + i * 1.9)) + 1.4) * (.45 + .55 * e) * (.5 + .5 * c), x = w.xc + u, y = base - w.hp * prof(w, u) + (pass ? 0 : r * .6 + 1); g.moveTo(x + r, y); g.arc(x, y, r, 0, 2 * PI); } g.fill(); } }
+        continue;
+      }
+      if (w.b <= 0) { // lip starting to feather
+        const n = 5; g.fillStyle = C.foam;
+        for (let i = 0; i < n; i++) { const u = lerp(-w.wf * .1, w.wf * (.1 + .4 * (1 - q)), i / (n - 1)), f = prof(w, u), x = w.xc + u + w.lean * w.hp * Math.pow(f, 2.6), r = w.hp * (.03 + .035 * hash(i + w.k)) * feather * (1 + .25 * Math.sin(rt * 7 + i * 2)) + .6; g.globalAlpha = .9 * feather; g.beginPath(); g.arc(x, base - w.hp * f + r * .2, r, 0, 2 * PI); g.fill(); }
+        g.globalAlpha = 1; continue;
+      }
+      const grow = sm(w.b * 7), u0 = -w.wb * lerp(.1, .5, grow), u1 = w.wf * lerp(.5, .98, grow), n = Math.max(6, Math.round((u1 - u0) / clamp(w.hp * .16, 3.5, 6)));
+      for (let pass = 0; pass < 2; pass++) {
+        g.fillStyle = pass ? C.foam : C.foamShade; g.globalAlpha = pass ? 1 : .9; g.beginPath();
+        for (let i = 0; i <= n; i++) {
+          const u = lerp(u0, u1, i / n), f = prof(w, u), e = Math.sin(PI * i / n), front = i / n;
+          const r = (Math.min(w.hp, 46) * (.1 + .13 * hash(i * 3.3 + w.k * 7)) * (.75 + .25 * Math.sin(rt * 6 + i * 1.9 + w.k)) * lerp(.55, 1, front) + 1.6) * (.5 + .5 * e) * lerp(.7, 1, grow);
+          const x = w.xc + u, y = base - w.hp * f + (pass ? r * .25 : r * .75 + 1);
+          g.moveTo(x + r, y); g.arc(x, y - (pass ? r * .25 : 0), r, 0, 2 * PI);
+        }
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      // spray blown back off the top by an offshore wind
+    }
+    const off = clamp(-(o.onshore || 0), 0, 1) * clamp(((o.windMph || 0) - 3) / 12, 0, 1);
+    if (off > .05) { g.fillStyle = C.foam; for (const w of waves) { if (w.b > .25 || w.s < .7 || w.hp < 8) continue; const a0 = sm((w.s - .7) / .25) * off; for (let i = 0; i < 16; i++) { const age = (rt * .9 + hash(i + w.k * 3)) % 1, x = w.xc + w.lean * w.hp - age * (10 + w.hp * (.5 + .4 * hash(i * 7))), y = base - w.hp - age * (3 + w.hp * .16 * hash(i * 5 + 2)) + 1; g.globalAlpha = a0 * (1 - age) * .85; g.beginPath(); g.arc(x, y, .8 + (1 - age) * 1.3, 0, 2 * PI); g.fill(); } } g.globalAlpha = 1; }
+
+    // seafloor and beach
+    gr = g.createLinearGradient(0, base, 0, H); gr.addColorStop(0, C.sand[0]); gr.addColorStop(1, C.sand[1]);
+    g.beginPath(); g.moveTo(-2, H + 2); for (let x = -2; x <= W + 4; x += 4) g.lineTo(x, floorY(x)); g.lineTo(W + 4, H + 2); g.closePath(); g.fillStyle = gr; g.fill();
+    g.beginPath(); for (let x = -2; x <= W + 4; x += 4) x < 0 ? g.moveTo(x, floorY(x) + .75) : g.lineTo(x, floorY(x) + .75); g.strokeStyle = C.sandLine; g.globalAlpha = .55; g.lineWidth = 1.5; g.stroke(); g.globalAlpha = 1;
+    // swash: a thin sheet of water running up the sand
+    let run = 0; for (const w of waves) { const z = (w.xc - shore) / 60; if (z > -.4 && z < 1.6) run = Math.max(run, Math.sin(clamp((z + .4) / 2, 0, 1) * PI) * clamp(w.h * pxFt * .5, 4, 22)); }
+    if (run > .5) { g.fillStyle = C.foam; g.globalAlpha = .8; g.beginPath(); g.moveTo(shore - 8, base + 1.5); g.quadraticCurveTo(shore + run * .5, floorY(shore + run * .5) - 2.5, shore + run, floorY(shore + run) - .5); g.quadraticCurveTo(shore + run * .4, floorY(shore + run * .4) + .8, shore - 8, base + 3); g.fill(); g.globalAlpha = 1; }
+
+    // what the caller needs for captions and timing
+    const ref = F.zone * .75, kn = Math.max(0, Math.floor((head - ref) / spacing) + 1);
+    let wait = 0; for (let j = kn; j < kn + p.every * 2; j++) if ((j % p.every) < p.perSet) { wait = (j * spacing + ref - head) / v; break; }
+    return { inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: st ? st.warp : 0, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
+  }
+  return { draw, bodyScale };
+})();
+
 /* ---------- wave simulator ---------- */
 const sim = { playing: !matchMedia("(prefers-reduced-motion: reduce)").matches, speed: 4, t0: performance.now(), simTime: 0, last: performance.now(), seq: [] };
 function simParams() {
@@ -1738,67 +2095,29 @@ function buildSeq() {
 }
 function drawSim(now) {
   const cv = $("sim"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
-  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const dt = (now - sim.last) / 1000; sim.last = now; if (sim.playing) sim.simTime += dt * sim.speed;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const dt = Math.min(0.25, (now - sim.last) / 1000); sim.last = now;
+  // while the surfer is catching and riding a wave, fast-forward eases off so the ride is watchable
+  if (sim.playing) { const slow = 1 + (Math.min(1, 1.3 / sim.speed) - 1) * (poseKey === "ride" ? sim.warp || 0 : 0); sim.simTime += dt * sim.speed * slow; sim.rt = (sim.rt || 0) + dt; }
   const p = sim.p; if (!p) return;
-  const shore = W * 0.86, spacing = Math.max(120, W / 5.5);
-  const B0 = BOARDS[boardKey], boardFt = (B0.len[0] + B0.len[1]) / 2, Hs = heightIn / 12;
-  const tideNow = (SCORED[selected] || {}).tide, depthS = Math.max(0.3, SIM_D0 + (tideNow == null ? 3 : tideNow)); // ft of water where the surfer stands
-  const standing = poseKey === "stand";
-  const aboveFt = Math.max(p.set * 1.45, standing ? Math.max(Hs, boardFt) - depthS : 1.5) + 0.4;
-  const pxFt = (H - 34) / (aboveFt + depthS + 1.4), base = 14 + aboveFt * pxFt; // base = the still water line
-  const v = spacing / p.T; // px per simulated second
-  const head = sim.simTime * v;
-  // sky/sea tokens
-  const sea = css("--sea"), seaSoft = css("--sea-soft"), ink = css("--ink"), ink2 = css("--ink-2"), sand = css("--sand"), line = css("--line");
-  // height guides
-  g.font = "11px " + css("--font-data"); g.fillStyle = ink2; g.strokeStyle = line; g.lineWidth = 1;
-  for (let ft = 2; ft * pxFt < base - 10; ft += 2) { const y = base - ft * pxFt; g.setLineDash([2, 5]); g.beginPath(); g.moveTo(30, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]); g.fillText(ft + " ft", 2, y + 4); }
-  const Hpx = Hs * pxFt, bw0 = B0.width * pxFt, xs = shore - 0.2 * Hpx - bw0 - 6; // where the surfer stands
-  const depthAt = x => x <= xs ? depthS + ((xs - x) / pxFt) * 0.04 : Math.max(0, depthS * (1 - (x - xs) / (shore + 30 - xs)));
-  const floorY = x => base + depthAt(x) * pxFt;
-  // surface
-  const kNow = Math.floor(head / spacing);
-  const surf = x => {
-    let y = 0;
-    for (let k = kNow - 1; k <= kNow + Math.ceil(W / spacing) + 2; k++) {
-      if (k < 0) continue;
-      const xc = head - k * spacing; const u = x - xc; if (Math.abs(u) > spacing) continue;
-      const grow = clamp(0.45 + 0.55 * (xc / shore), 0.3, 1) * (xc > shore ? Math.max(0, 1 - (xc - shore) / 60) : 1);
-      const w = u > 0 ? spacing * 0.28 : spacing * 0.55;
-      const s = Math.abs(u) < w ? Math.pow((1 + Math.cos(Math.PI * u / w)) / 2, 2.2) : 0;
-      y = Math.max(y, sim.seq[k % sim.seq.length] * grow * s);
-    }
-    return y;
-  };
-  const grad = g.createLinearGradient(0, base - p.set * pxFt, 0, H);
-  grad.addColorStop(0, sea); grad.addColorStop(1, seaSoft);
-  const waterPath = () => { g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 40; x += 3) g.lineTo(x, base - surf(x) * pxFt); g.lineTo(shore + 40, H); g.closePath(); };
-  g.fillStyle = grad; g.save(); g.globalAlpha = standing ? 0.78 : 1; waterPath(); g.fill(); g.restore();
-  if (standing) {
-    // the surfer stands on the seafloor, then the water is drawn over them so the waterline cuts across the body
-    drawSurfer(g, xs, floorY(xs), pxFt, ink, ink2, sand);
-    g.save(); g.globalAlpha = 0.42; g.fillStyle = sea; waterPath(); g.fill(); g.restore();
-  }
-  // seafloor and beach: a sandbar under the surfer sloping up to the beach
-  g.fillStyle = sand; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= shore + 30; x += 6) g.lineTo(x, floorY(x));
-  g.lineTo(W, base - (W - shore - 30) * 0.12); g.lineTo(W, H); g.closePath(); g.fill();
-  g.strokeStyle = ink2; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.beginPath(); for (let x = 0; x <= shore + 30; x += 6) { const y = floorY(x); x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.globalAlpha = 1;
-  // whitewater at shore
-  g.fillStyle = "rgba(255,255,255,0.55)";
-  for (let k = kNow - 1; k <= kNow + 1; k++) { if (k < 0) continue; const xc = head - k * spacing; if (xc > shore - 20 && xc < shore + 60) { const a = 1 - (xc - shore + 20) / 80; g.globalAlpha = clamp(a, 0, 1); g.beginPath(); g.ellipse(xc, base - 4, 26, 8, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; } }
-  // surfer for scale: the viewer's height, holding the selected board upright
-  if (!standing) drawLying(g, xs, (x) => base - surf(x) * pxFt, pxFt, ink, ink2, sand);
-  const part = bodyPart(depthS / Hs), tideTxt = tideNow == null ? "tide unknown, assuming 3 ft" : tideNow.toFixed(1) + " ft tide";
-  const dtxt = standing ? `Water is ${part === "over your head" ? "over your head" : "about " + part + " high"} at ${tideTxt}. Assumes the spot you stand on is ${SIM_D0} ft under water at a 0 ft tide (an approximation, not measured).` : `Lying on your board, floating on top of the water. Depth here is about ${depthS.toFixed(1)} ft at ${tideTxt} (assumes ${SIM_D0} ft at a 0 ft tide, an approximation).`;
+  const h = SCORED[selected] || {}, B0 = BOARDS[boardKey], tideNow = h.tide;
+  const r = WaveScene.draw(g, W, H, {
+    t: sim.simTime, rt: sim.rt || 0, p, seq: sim.seq, pose: poseKey, heightIn, depth0: SIM_D0, tideFt: tideNow == null ? null : tideNow,
+    chopFt: mToFt(h.chop || 0), windMph: h.mph || 0, onshore: h.windDir == null ? 0 : Math.cos((h.windDir - SPOT.facing) * Math.PI / 180),
+    board: { key: boardKey, label: B0.label.split(" ")[0], lenFt: (B0.len[0] + B0.len[1]) / 2, widthFt: B0.width },
+    dark: parseInt(css("--bg").slice(1, 3), 16) < 90, font: "11px " + css("--font-data")
+  });
+  sim.warp = r.warp;
+  const Hs = heightIn / 12, part = bodyPart(r.depthFt / Hs), tideTxt = tideNow == null ? "tide unknown, assuming 3 ft" : tideNow.toFixed(1) + " ft tide";
+  const sizeTxt = `Set waves are ${r.setScale} on you (${p.set.toFixed(1)} ft). `;
+  const dtxt = sizeTxt + (poseKey === "stand" ? `Where you stand the water is ${part === "over your head" ? "over your head" : "about " + part + " high"} at ${tideTxt}. Assumes the spot you stand on is ${SIM_D0} ft under water at a 0 ft tide (an approximation, not measured).`
+    : poseKey === "lie" ? `Lying on your board, floating on top of the water as the waves pass under you.`
+    : `The surfer waits for a set, paddles, pops up and rides one wave in, then paddles back out. Fast-forward slows down during the ride.`);
   if ($("simDepth").textContent !== dtxt) $("simDepth").textContent = dtxt;
-  // set countdown
-  const k = Math.max(0, Math.floor((head - shore) / spacing) + 1);
-  let wait = 0; for (let j = k; j < k + p.every * 2; j++) { if ((j % p.every) < p.perSet) { wait = ((j * spacing + shore) - head) / v; break; } }
-  const inSet = (k % p.every) < p.perSet && k > 0;
-  const mins = Math.floor(wait / 60), secs = Math.max(0, Math.round(wait % 60));
-  $("simInfo").textContent = `Sets of ~${p.perSet} waves every ~${(p.every * p.T / 60).toFixed(1)} min · ${inSet ? "set rolling through now" : `next set in ${mins}:${String(secs).padStart(2, "0")}`}`;
+  const mins = Math.floor(r.wait / 60), secs = Math.max(0, Math.round(r.wait % 60));
+  const info = `Sets of ~${p.perSet} waves every ~${(p.every * p.T / 60).toFixed(1)} min · ${r.inSet ? "set rolling through now" : `next set in ${mins}:${String(secs).padStart(2, "0")}`}`;
+  if ($("simInfo").textContent !== info) $("simInfo").textContent = info;
 }
 let heightIn = +(store.get("waive.heightIn") || 70);
 const fmtIn = i => `${Math.floor(i / 12)}′${i % 12}″`;
@@ -1809,69 +2128,9 @@ const fmtIn = i => `${Math.floor(i / 12)}′${i % 12}″`;
   sel.onchange = () => { heightIn = +sel.value; store.set("waive.heightIn", heightIn); };
 })();
 const SIM_D0 = 1; // assumed water depth (ft) where the surfer stands at a 0 ft tide
-let poseKey = store.get("waive.pose") === "lie" ? "lie" : "stand";
+let poseKey = ["lie", "ride"].includes(store.get("waive.pose")) ? store.get("waive.pose") : "stand";
 function bodyPart(f) { // how high the water reaches, as a fraction of standing height from the feet
   return f < 0.08 ? "ankle" : f < 0.22 ? "shin" : f < 0.32 ? "knee" : f < 0.46 ? "thigh" : f < 0.56 ? "hip" : f < 0.64 ? "waist" : f < 0.78 ? "chest" : f < 0.86 ? "shoulder" : f < 0.95 ? "neck" : "over your head";
-}
-// prone paddling pose: the board floats on the surface, the surfer lies on it facing the beach
-function drawLying(g, x, surfY, pxFt, ink, ink2, sand) {
-  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, th = Math.max(5, 0.45 * pxFt), Hs = (heightIn / 12) * pxFt;
-  const xa = x - L / 2, xb = x + L / 2, ya = surfY(xa), yb = surfY(xb), ang = Math.atan2(yb - ya, xb - xa);
-  g.save(); g.translate(x, (ya + yb) / 2 - th * 0.25); g.rotate(ang);
-  g.fillStyle = sand; g.strokeStyle = ink; g.lineWidth = 1.5;
-  g.beginPath(); g.moveTo(-L / 2, 0); g.quadraticCurveTo(0, -th * 0.9, L / 2, 0); g.quadraticCurveTo(0, th * 0.6, -L / 2, 0); g.fill(); g.stroke();
-  g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
-  const lx = -L * 0.38, top = -th * 0.55; // tail end of the body, resting on the deck
-  g.lineWidth = 0.075 * Hs; g.beginPath(); g.moveTo(lx, top); g.lineTo(lx + 0.45 * Hs, top - 0.02 * Hs); g.stroke();          // legs and hips
-  g.lineWidth = 0.17 * Hs; g.beginPath(); g.moveTo(lx + 0.4 * Hs, top - 0.03 * Hs); g.lineTo(lx + 0.8 * Hs, top - 0.07 * Hs); g.stroke(); // torso
-  g.lineWidth = 0.05 * Hs; g.beginPath(); g.moveTo(lx + 0.78 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.88 * Hs, top - 0.2 * Hs); g.stroke(); // neck
-  g.beginPath(); g.arc(lx + 0.93 * Hs, top - 0.24 * Hs, 0.065 * Hs, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.moveTo(lx + 0.7 * Hs, top - 0.1 * Hs); g.lineTo(lx + 0.78 * Hs, top + 0.04 * Hs); g.stroke();                 // arm in the water
-  g.restore();
-  g.fillStyle = ink2; g.fillText(`You, ${fmtIn(heightIn)}, lying on a ${B.label.split(" ")[0].toLowerCase()}`, x - L / 2, Math.min(surfY(x), ya) - 0.5 * Hs - 20);
-}
-function drawSurfer(g, x, base, pxFt, ink, ink2, sand) {
-  const H = (heightIn / 12) * pxFt, top = base - H, Y = f => top + f * H;
-  g.save(); g.fillStyle = ink; g.strokeStyle = ink; g.lineCap = "round"; g.lineJoin = "round";
-  // head and neck
-  g.beginPath(); g.ellipse(x, Y(0.065), 0.052 * H, 0.065 * H, 0, 0, Math.PI * 2); g.fill();
-  g.fillRect(x - 0.022 * H, Y(0.12), 0.044 * H, 0.05 * H);
-  // torso: shoulders, waist, hips
-  g.beginPath();
-  g.moveTo(x - 0.115 * H, Y(0.19)); g.quadraticCurveTo(x, Y(0.165), x + 0.115 * H, Y(0.19));
-  g.lineTo(x + 0.085 * H, Y(0.44)); g.lineTo(x + 0.095 * H, Y(0.53));
-  g.lineTo(x - 0.095 * H, Y(0.53)); g.lineTo(x - 0.085 * H, Y(0.44)); g.closePath(); g.fill();
-  // legs
-  g.lineWidth = 0.065 * H;
-  g.beginPath(); g.moveTo(x - 0.05 * H, Y(0.53)); g.lineTo(x - 0.055 * H, Y(0.76)); g.lineTo(x - 0.06 * H, Y(0.97)); g.stroke();
-  g.beginPath(); g.moveTo(x + 0.05 * H, Y(0.53)); g.lineTo(x + 0.055 * H, Y(0.76)); g.lineTo(x + 0.06 * H, Y(0.97)); g.stroke();
-  // feet
-  g.lineWidth = 0.04 * H;
-  g.beginPath(); g.moveTo(x - 0.06 * H, Y(0.985)); g.lineTo(x - 0.12 * H, Y(0.985)); g.stroke();
-  g.beginPath(); g.moveTo(x + 0.06 * H, Y(0.985)); g.lineTo(x + 0.12 * H, Y(0.985)); g.stroke();
-  // arms: left hangs down, right reaches to the board
-  g.lineWidth = 0.045 * H;
-  g.beginPath(); g.moveTo(x - 0.11 * H, Y(0.21)); g.lineTo(x - 0.15 * H, Y(0.36)); g.lineTo(x - 0.16 * H, Y(0.5)); g.stroke();
-  const B = BOARDS[boardKey], L = ((B.len[0] + B.len[1]) / 2) * pxFt, bw = BOARDS[boardKey].width * pxFt;
-  const bx = x + 0.2 * H + bw / 2, btop = base - L;
-  g.beginPath(); g.moveTo(x + 0.11 * H, Y(0.21)); g.lineTo(x + 0.17 * H, Y(0.34)); g.lineTo(bx - bw / 2, Y(0.4)); g.stroke();
-  g.restore();
-  // board standing upright next to the surfer
-  g.save(); g.fillStyle = sand; g.strokeStyle = ink; g.lineWidth = 1.5;
-  g.beginPath();
-  const noseH = B.nose === "point" ? L * 0.22 : L * 0.08;
-  g.moveTo(bx, btop);
-  g.quadraticCurveTo(bx + bw / 2, btop + noseH * 0.4, bx + bw / 2, btop + noseH);
-  g.lineTo(bx + bw / 2, base - L * 0.12); g.quadraticCurveTo(bx + bw / 2, base, bx + (boardKey === "fish" ? bw * 0.2 : 0), base);
-  if (boardKey === "fish") { g.lineTo(bx, base - L * 0.06); g.lineTo(bx - bw * 0.2, base); }
-  g.quadraticCurveTo(bx - bw / 2, base, bx - bw / 2, base - L * 0.12);
-  g.lineTo(bx - bw / 2, btop + noseH); g.quadraticCurveTo(bx - bw / 2, btop + noseH * 0.4, bx, btop);
-  g.closePath(); g.fill(); g.stroke();
-  g.beginPath(); g.moveTo(bx, btop + 3); g.lineTo(bx, base - 3); g.strokeStyle = ink2; g.lineWidth = 1; g.stroke();
-  g.restore();
-  g.fillStyle = ink2;
-  g.fillText(`You, ${fmtIn(heightIn)}`, x - 28, Math.min(top, btop) - 18);
-  g.fillText(`${B.label.split(" ")[0]} ${fmtIn(Math.round((B.len[0] + B.len[1]) / 2 * 12))}`, x - 28, Math.min(top, btop) - 5);
 }
 function loop(now) { if ($("sim").offsetParent) drawSim(now); requestAnimationFrame(loop); }
 $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textContent = sim.playing ? "Pause" : "Play"; };
@@ -2328,7 +2587,7 @@ renderRunSeg();
 renderTheme(); applyLook(); setInterval(applyLook, 300000);
 (function poseInit() {
   const seg = $("poseSeg");
-  const paint = () => { seg.innerHTML = [["stand", "Standing"], ["lie", "Lying on board"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${poseKey === k}">${l}</button>`).join(""); seg.querySelectorAll("button").forEach(b => b.onclick = () => { poseKey = b.dataset.k; store.set("waive.pose", poseKey); paint(); }); };
+  const paint = () => { seg.innerHTML = [["stand", "Standing"], ["lie", "Lying on board"], ["ride", "Riding"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${poseKey === k}">${l}</button>`).join(""); seg.querySelectorAll("button").forEach(b => b.onclick = () => { poseKey = b.dataset.k; store.set("waive.pose", poseKey); paint(); }); };
   paint();
 })();
 const SCORE_READY = loadScorecard();
