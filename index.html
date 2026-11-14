@@ -173,15 +173,18 @@ details.tune summary { cursor: pointer; color: var(--sea); font-weight: 600; }
 .fact .s { font-size: 0.84rem; color: var(--ink-2); }
 .reality { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); display: grid; gap: 8px; }
 .reality h3 { margin: 0; font-size: 0.95rem; }
+.lowconf { margin: 10px 0 0; font-size: 0.86rem; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--r2); background: var(--surface-2); color: var(--ink); max-width: 46ch; }
+.reality ul.live { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 0.88rem; } .reality ul.live b { font-weight: 600; }
 .reality { min-width: 0; grid-template-columns: minmax(0, 1fr); } .reality th, .reality td { overflow-wrap: anywhere; }
 .reality table { border-collapse: collapse; width: 100%; min-width: 0; table-layout: fixed; font-size: 0.88rem; } .reality th { text-align: left; font-weight: 500; color: var(--ink-2); padding: 3px 8px 3px 0; } .reality td { padding: 3px 8px 3px 0; }
 .reality .flag { font-size: 0.88rem; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--sea); background: var(--surface); } .reality .flag.warn { border-left-color: var(--r2); } .reality .flag.bad { border-left-color: var(--r1); }
 .reality .s { font-size: 0.8rem; color: var(--ink-2); }
 .factors { display: grid; gap: 10px; margin-top: 18px; }
-.factor { display: grid; grid-template-columns: 80px 1fr 44px; gap: 10px; align-items: center; font-size: 0.88rem; }
+.factor { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; align-items: center; font-size: 0.9rem; }
+.grade { justify-self: start; padding: 2px 12px; border-radius: 999px; font: 700 .82rem var(--font-body); color: #0f2a33; } .grade.good { background: #8fd6b4; } .grade.ok { background: #f0cf6a; } .grade.bad { background: #ee9a8c; }
 .factor .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
 .factor .bar i { display: block; height: 100%; background: var(--sea); border-radius: 4px; }
-.factor .why { grid-column: 2 / 4; margin-top: -6px; color: var(--ink-2); font-size: 0.82rem; }
+.factor .why { grid-column: 2; margin-top: -2px; color: var(--ink-2); font-size: 0.82rem; }
 
 /* windows */
 .days { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
@@ -640,6 +643,7 @@ body { position: relative; }
         <div class="big num" id="scoreBig">–<small>/10</small></div>
         <span class="label" id="scoreLabel">–</span>
         <span class="when muted" id="scoreWhen"></span>
+        <p class="lowconf" id="lowConf" hidden></p>
       </div>
       <div>
         <div class="facts" id="facts"></div>
@@ -715,8 +719,10 @@ body { position: relative; }
     <section aria-label="How the rating works">
       <div class="sechead"><h2>How the rating works</h2></div>
     <div class="prose">
-      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>period</b> (longer period means cleaner, more powerful waves), <b>tide</b> (<span id="tideNote"></span>), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
-      <p>Wave height at the beach is estimated from the offshore swell, adjusted for period (longer swells grow more as they reach shore) and for direction (how open the break is to that swell). Beach breaks like Pacific Beach Drive pick up a little more size than Tourmaline. When the Torrey Pines buoy is reachable, the next day of the forecast is corrected toward what the buoy is actually measuring.</p>
+      <p>Every hour gets five scores from 0 to 1: <b>size</b> (how close the waves are to your board's sweet spot), <b>wind</b> (light offshore is perfect, onshore blows it out), <b>swell power</b> (longer period means cleaner, more powerful waves, and short chop mixed in counts against it), <b>tide</b> (<span id="tideNote"></span>; each break also likes the tide either rising or falling), and <b>direction</b> (how open the break is to the swell). They are multiplied together, with size counting most, then scaled to 10 on a curve. A 10 means every factor is perfect at once, which is rare. A normal fun day lands around 5 to 7.</p>
+      <p><b>Wave size</b> comes from the CDIP nearshore wave model run by Scripps Institution of Oceanography. It predicts the waves in 10 m of water straight off each break, already counting how the islands, La Jolla and Point Loma block and bend each swell. waive splits that into groundswell (12 s and longer), windswell (7 to 12 s) and chop, works out how big each swell breaks with a standard formula (longer swells break bigger), and adds them up. For the first day the forecast is pulled toward what the buoys are measuring right now. If the nearshore model is unavailable, waive falls back to two open-ocean wave models blended together.</p>
+      <p><b>Wind</b> uses the measured wind on Scripps Pier for the current hour and the forecast after that. Gusts count, onshore wind that has blown for three hours or more counts extra because the chop has built up, and chop lingers for a couple of hours after the wind drops.</p>
+      <p><b>Low confidence</b> shows when the two open-ocean wave models disagree by more than about a third, or when the nearshore forecast is far from what is being measured. <b>Self-correction</b>: every day waive saves its forecast, later compares it with the buoy, and adjusts the open-ocean forecast by the average miss.</p>
       <p>On the scale, Fair is about 5 to 7, Good is 7 and up, and Epic is 8.5 and up.</p>
       <p><b>Wetsuit suggestion.</b> The chip next to the water temperature comes only from the Torrey Pines buoy's measured water temperature, never an estimate. If the buoy has no reading it says so. In Fine-tune you can say whether you run cold or warm, and the suggestion moves one step thicker or thinner. It is a general guide, not advice for your body.</p>
       <p>Change boards or tune the settings and every rating and best-time window updates for you.</p>
@@ -763,52 +769,55 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} },
 };
 // Where the data comes from for the whole stretch of coast (all the breaks are within about 2 km of each other).
-const REGION = { lat: 32.80, lon: -117.262, marineLat: 32.80, marineLon: -117.28, tideStation: "9410230", buoy: "46225" };
+const REGION = { lat: 32.80, lon: -117.262, marineLat: 32.80, marineLon: -117.28, tideStation: "9410230", buoy: "46225", model2: "ncep_gfswave016" };
 // Each break: where it is, which way it faces, which swell directions reach it, and how it reacts to size and tide.
 // exposure rows are [from°, to°, share of swell that reaches the break]; anything outside gets 0.1.
+// tide is the break's own best tide range in feet; tideDir is whether it likes the tide rising or falling, and tideDirCost is how much the wrong direction costs.
+// sizeFactor is only used when the nearshore model is down: it was set by comparing the old formula with 40 days of the nearshore model (Oct 5 to Nov 13, 2026).
 // Listed north to south. Positions are on the water just off the sand; swell and tide notes come from the break guides on Surf-Forecast and Mondo.
 const SPOTS = {
   tourmaline: {
     name: "Tourmaline", area: "Pacific Beach, San Diego", lat: 32.8045, lon: -117.2639, facing: 250,
     exposure: [[205, 280, 1], [190, 205, 0.8], [280, 295, 0.8], [175, 190, 0.55], [295, 310, 0.55], [160, 175, 0.3], [310, 320, 0.3]],
-    sizeFactor: 1, tideShift: 0, tideWeight: 1,
+    sizeFactor: 1, tide: [2.5, 5.5], tideDir: "rising", tideDirCost: 0.05, tideWeight: 1, site: "D0424",
     type: "Reef and cobble", bestSwell: "West to southwest", bestWind: "East-northeast (offshore)", bestTide: "Mid to high", reliability: "Fairly consistent",
     blurb: "A slow, rolling reef and cobblestone break. La Jolla blocks some northwest swell and Point Loma blocks some south swell.",
-    tideNote: "Tourmaline's reef and rocks like mid to high tide.",
+    tideNote: "Tourmaline's reef and rocks like mid to high tide, about 2.5 to 5.5 ft",
   },
   law: {
     name: "Law Street", area: "Pacific Beach, San Diego", lat: 32.8013, lon: -117.2615, facing: 255,
     exposure: [[235, 290, 1], [210, 235, 0.8], [290, 305, 0.7], [190, 210, 0.5], [305, 320, 0.4], [170, 190, 0.3]],
-    sizeFactor: 1.05, tideShift: 0, tideWeight: 0.4,
+    sizeFactor: 1.4, tide: [1.5, 5], tideDir: "rising", tideDirCost: 0.05, tideWeight: 0.4, site: "D0422",
     type: "Sandbar beach break, shifting peaks", bestSwell: "West", bestWind: "East-northeast (offshore)", bestTide: "All tides", reliability: "Inconsistent, doesn't work often",
     blurb: "A sandy beach break with scattered peaks that move with the sandbars. It is friendly for beginners when it breaks, but it needs a good west swell.",
-    tideNote: "Law Street is a sandbar break that works at most tides, so tide barely changes its rating.",
+    tideNote: "Law Street is a sandbar break that works at most tides, so tide barely changes its rating",
   },
   diamond: {
     name: "Diamond Street", area: "Pacific Beach, San Diego", lat: 32.7988, lon: -117.2603, facing: 255,
     exposure: [[235, 290, 1], [210, 235, 0.8], [290, 305, 0.7], [190, 210, 0.5], [305, 320, 0.4], [170, 190, 0.3]],
-    sizeFactor: 1.05, tideShift: 0.5, tideWeight: 0.8,
+    sizeFactor: 1.45, tide: [2.5, 5.5], tideDir: "rising", tideDirCost: 0.05, tideWeight: 0.8, site: "D0413",
     type: "Sand-bottom beach break", bestSwell: "West", bestWind: "East-northeast (offshore)", bestTide: "Medium to high", reliability: "Fairly consistent",
     blurb: "A sand-bottom beach break between Law Street and the pier. It likes west groundswell and works best on medium to high tides.",
-    tideNote: "Diamond Street's sandbars work best on medium to high tide.",
+    tideNote: "Diamond Street's sandbars work best on medium to high tide, about 2.5 to 5.5 ft",
   },
   crystal: {
     name: "Crystal Pier", area: "Pacific Beach, San Diego", lat: 32.7958, lon: -117.2600, facing: 255,
     exposure: [[200, 285, 1], [185, 200, 0.7], [285, 300, 0.7], [170, 185, 0.45], [300, 315, 0.4], [160, 170, 0.25]],
-    sizeFactor: 1.1, tideShift: -0.5, tideWeight: 1,
+    sizeFactor: 1, tide: [2, 4], tideDir: "falling", tideDirCost: 0.1, tideWeight: 1, site: "D0408",
     type: "Beach break, lefts and rights, rocks near the pier", bestSwell: "Southwest groundswell", bestWind: "Northeast (offshore)", bestTide: "Mid tide, falling", reliability: "Consistent, often crowded",
     blurb: "An exposed beach break that picks up swell well. The pier shapes the sandbars. Rocks are a hazard, and it is often crowded.",
-    tideNote: "Crystal Pier works best around mid tide when the tide is falling.",
+    tideNote: "Crystal Pier works best around mid tide, about 2 to 4 ft, when the tide is falling",
   },
   pbdrive: {
     name: "Pacific Beach Drive", area: "Pacific Beach, San Diego", lat: 32.7906, lon: -117.2568, facing: 255,
     exposure: [[200, 295, 1], [185, 200, 0.8], [295, 310, 0.8], [170, 185, 0.55], [310, 320, 0.55], [160, 170, 0.3], [320, 330, 0.3]],
-    sizeFactor: 1.1, tideShift: -1, tideWeight: 1,
+    sizeFactor: 1, tide: [0.5, 3.5], tideDir: "rising", tideDirCost: 0.05, tideWeight: 1, site: "D0400",
     type: "Sandbar beach break", bestSwell: "West-southwest", bestWind: "East-northeast (offshore)", bestTide: "Low to mid", reliability: "Fairly consistent",
     blurb: "A sandbar beach break that picks up more swell than Tourmaline and is open to more northwest swell. Point Loma still blocks some south swell. Pacific Beach Drive meets the sand where Ocean Blvd ends and the boardwalk begins, between Tower 23 (Oliver) and Tower 22 (Santa Rita).",
-    tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide and get soft and close out at high tide.",
+    tideNote: "Pacific Beach Drive's sandbars work best from low to mid tide, about 0.5 to 3.5 ft, and get soft at high tide",
   },
 };
+for (const k of Object.keys(SPOTS)) SPOTS[k].key = k;
 let spotKey = (location.hash || "").slice(1);
 if (!SPOTS[spotKey]) spotKey = store.get("waive.spot") || "tourmaline";
 if (!SPOTS[spotKey]) spotKey = "tourmaline";
@@ -896,12 +905,16 @@ function sunTimes(localNoonMs) {
 
 /* ---------- data sources ---------- */
 const SOURCES = [
-  { id: "marine", name: "Open-Meteo Marine (NOAA WaveWatch III and other wave models)", gives: "Hourly swell height, period and direction for 4 days", url: "https://open-meteo.com/en/docs/marine-weather-api" },
+  { id: "cdip", name: "CDIP nearshore wave model (MOP), Scripps Institution of Oceanography", gives: "Wave height, period and direction in 10 m of water straight off each break, split into groundswell, windswell and chop. The main source for wave size", url: "https://cdip.ucsd.edu/mops/" },
+  { id: "marine", name: "Open-Meteo Marine, best-match wave model", gives: "Hourly open-ocean swells for 4 days. Backup for wave size, and one of the two models compared for confidence", url: "https://open-meteo.com/en/docs/marine-weather-api" },
+  { id: "marine2", name: "Open-Meteo Marine, NOAA GFS-Wave model", gives: "A second open-ocean wave model, blended with the first and compared with it", url: "https://open-meteo.com/en/docs/marine-weather-api" },
   { id: "nwsGrid", name: "National Weather Service gridded marine forecast", gives: "Backup swell height, direction and period", url: "https://www.weather.gov/documentation/services-web-api" },
   { id: "nwsHourly", name: "National Weather Service hourly forecast", gives: "Wind speed and direction, air temperature, sky", url: "https://forecast.weather.gov/MapClick.php?lat=32.805&lon=-117.263" },
   { id: "wind", name: "Open-Meteo weather forecast", gives: "Wind gusts, and backup wind if NWS is down", url: "https://open-meteo.com/en/docs" },
   { id: "tide", name: "NOAA Tides and Currents, La Jolla (Scripps Pier) 9410230", gives: "Hourly tide height and high/low times", url: "https://tidesandcurrents.noaa.gov/stationhome.html?id=9410230" },
+  { id: "pier", name: "NOAA wind gauge on Scripps Pier, La Jolla 9410230", gives: "Measured wind and gusts every 6 minutes, about 5 miles north of Pacific Beach", url: "https://tidesandcurrents.noaa.gov/stationhome.html?id=9410230" },
   { id: "buoy", name: "NOAA NDBC / CDIP buoy 46225, Torrey Pines Outer", gives: "Measured wave height, period, direction and water temperature right now", url: "https://www.ndbc.noaa.gov/station_page.php?station=46225" },
+  { id: "buoys", name: "NOAA NDBC / CDIP buoys 46254 Scripps Nearshore and 46258 Mission Bay West", gives: "Two more measured wave readings, each split into swell and wind waves", url: "https://www.ndbc.noaa.gov/station_page.php?station=46254" },
 ];
 const status = {}; // id -> {state, note}
 
@@ -916,11 +929,38 @@ function expandNWS(values, map, key) {
   }
 }
 
-async function loadMarine() {
-  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${REGION.marineLat}&longitude=${REGION.marineLon}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&timeformat=unixtime&timezone=GMT&forecast_days=4`;
-  const j = await getJSON(u); const h = j.hourly, out = {};
-  h.time.forEach((t, i) => { out[t * 1000] = { wave: h.wave_height[i], swell: h.swell_wave_height[i], period: h.swell_wave_period[i], dir: h.swell_wave_direction[i], windWave: h.wind_wave_height[i] }; });
+async function loadMarine(model) {
+  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${REGION.marineLat}&longitude=${REGION.marineLon}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction&timeformat=unixtime&timezone=GMT&forecast_days=4` + (model ? "&models=" + model : "");
+  const j = await getJSON(u); const h = j.hourly, out = {}, col = k => h[k] || [];
+  h.time.forEach((t, i) => {
+    if (h.wave_height[i] == null) return;
+    out[t * 1000] = { wave: h.wave_height[i], swell: h.swell_wave_height[i], period: h.swell_wave_period[i], dir: h.swell_wave_direction[i],
+      swell2: col("secondary_swell_wave_height")[i], period2: col("secondary_swell_wave_period")[i], dir2: col("secondary_swell_wave_direction")[i],
+      windWave: h.wind_wave_height[i], windWaveP: col("wind_wave_period")[i], windWaveDir: col("wind_wave_direction")[i] };
+  });
+  if (!Object.keys(out).length) throw new Error("No wave values");
   return out;
+}
+/* Hosted file refreshed every hour by a GitHub Action: three buoys and CDIP's nearshore wave model for each break. */
+async function loadFeeds() { return getJSON("data/feeds.json?" + Math.floor(Date.now() / 600000)); }
+/* Measured wind on Scripps Pier for the last 3 days, every 6 minutes. NOAA reports knots. */
+async function loadPier() {
+  const j = await getJSON(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=${REGION.tideStation}&date=recent&units=english&time_zone=gmt&format=json&application=waive`);
+  const out = [];
+  for (const r of j.data || []) {
+    if (r.s === "" || r.s == null || r.d === "" || r.d == null) continue;
+    const [d, t] = r.t.split(" "), [Y, M, D] = d.split("-").map(Number), [hh, mm] = t.split(":").map(Number);
+    out.push({ t: Date.UTC(Y, M - 1, D, hh, mm), mph: +r.s * 1.15078, dir: +r.d, gust: r.g === "" || r.g == null ? null : +r.g * 1.15078 });
+  }
+  if (!out.length) throw new Error("No wind readings");
+  return out;
+}
+/* Average of the pier readings in the hour starting at t0 (direction averaged as a vector). */
+function pierHour(pier, t0, t1) {
+  let n = 0, sp = 0, x = 0, y = 0, g = 0;
+  for (const r of pier) if (r.t >= t0 && r.t < (t1 || t0 + HOUR)) { n++; sp += r.mph; x += r.mph * Math.sin(r.dir * Math.PI / 180); y += r.mph * Math.cos(r.dir * Math.PI / 180); if (r.gust != null) g = Math.max(g, r.gust); }
+  if (!n) return null;
+  return { mph: sp / n, dir: (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, gust: g || null, n };
 }
 async function loadWind() {
   const u = `https://api.open-meteo.com/v1/forecast?latitude=${REGION.lat}&longitude=${REGION.lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&timeformat=unixtime&timezone=GMT&forecast_days=4`;
@@ -1011,6 +1051,54 @@ function exposure(d) {
 }
 const periodFactor = T => clamp(0.75 + 0.035 * (T || 10), 0.9, 1.35);
 function faceFt(hsM, T, dir) { return mToFt(hsM) * periodFactor(T) * exposure(dir) * SPOT.sizeFactor; }
+/* Breaking-wave height from a swell measured in 10 m of water (the depth of the CDIP nearshore points).
+   Step 1 undoes the shoaling to get the deep-water height. Step 2 is the Komar and Gaughan (1972) breaker formula, Hb = 0.39 g^0.2 (T H0^2)^0.4.
+   Longer-period swells grow more as they break, so 1 m at 16 s breaks bigger than 1 m at 8 s. */
+function shoal10(T) {
+  const g = 9.81, d = 10, w = 2 * Math.PI / T; let k = w * w / g;
+  for (let i = 0; i < 30; i++) k = w * w / (g * Math.tanh(k * d));
+  const n = 0.5 * (1 + 2 * k * d / Math.sinh(2 * k * d));
+  return Math.sqrt((g / (2 * w)) / (n * w / k));
+}
+function breakerM(hs, T) { if (!hs || !T) return 0; const h0 = hs / shoal10(T); return 0.39 * Math.pow(9.81, 0.2) * Math.pow(T * h0 * h0, 0.4); }
+const hyp = a => Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+/* The waves reaching this break in one hour: each swell on its own, the chop, and the breaking size they add up to.
+   Uses the CDIP nearshore point off this break when there is one, and otherwise the open-ocean models with this break's swell window. */
+function seaAt(h) {
+  const c = h.cdip && h.cdip[SPOT.key];
+  let parts, chop, face, src;
+  if (c) {
+    src = "cdip";
+    parts = [{ kind: "Groundswell", hs: c.ground, period: c.groundP, dir: c.dp }, { kind: "Windswell", hs: c.wind, period: c.windP, dir: c.dp }].filter(p => p.hs > 0.05 && p.period);
+    chop = c.chop; face = mToFt(hyp(parts.map(p => breakerM(p.hs, p.period))));
+  }
+  if (!c || !parts.length) {
+    src = "ocean";
+    parts = (h.off || []).map(p => Object.assign({}, p, { hs: p.hs * exposure(p.dir) * SPOT.sizeFactor })).filter(p => p.hs > 0.03);
+    if (!parts.length) parts = [{ kind: "Swell", hs: (h.hs || 0) * exposure(h.dir) * SPOT.sizeFactor, period: h.period, dir: h.dir }];
+    chop = h.offChop || 0; face = hyp(parts.map(p => mToFt(p.hs) * periodFactor(p.period)));
+  }
+  parts.sort((a, b) => b.hs - a.hs);
+  const e = parts.reduce((s, p) => s + p.hs * p.hs, 0) || 1e-6;
+  const period = parts.reduce((s, p) => s + p.hs * p.hs * (p.period || 8), 0) / e;
+  return { src, parts, chop, face, hs: Math.sqrt(e), period, dir: parts[0].dir, chopFrac: chop * chop / (e + chop * chop) };
+}
+/* Wind as the water feels it: gusts count for part of the speed, onshore wind that has blown for hours has built more chop,
+   and chop lingers for a couple of hours after an onshore wind drops. h.past holds the hours before this one, newest first. */
+function windFeel(h) {
+  const rad = d => (d - SPOT.facing) * Math.PI / 180;
+  const gust = h.gust != null ? Math.max(h.gust, h.mph) : h.mph, mph = h.mph + 0.3 * (gust - h.mph);
+  const on = mph * Math.cos(rad(h.windDir)), cross = Math.abs(mph * Math.sin(rad(h.windDir)));
+  let onHrs = 0, resid = 0, streak = true;
+  (h.past || []).slice(0, 6).forEach((p, j) => {
+    const po = p.mph * Math.cos(rad(p.dir));
+    if (streak && po >= 5) onHrs++; else streak = false;
+    resid = Math.max(resid, Math.max(0, po) * ([0.6, 0.35, 0.2][j] || 0));
+  });
+  const known = (h.past || []).length > 0;
+  const build = on >= 5 ? (onHrs >= 3 ? 1.15 : known && onHrs === 0 ? 0.8 : 1) : 1;
+  return { mph, on, cross, onHrs, resid, build, left: resid > Math.max(0, on) * build + 0.5 && resid >= 3 };
+}
 function bodyScale(ft) {
   if (ft < 1) return "Ankle to knee"; if (ft < 2) return "Knee to thigh"; if (ft < 3) return "Thigh to waist";
   if (ft < 4.5) return "Waist to chest"; if (ft < 6) return "Chest to head"; if (ft < 8) return "Overhead"; return "Well overhead";
@@ -1031,23 +1119,26 @@ function scoreHour(h, P) {
   else size = clamp(0.75 * (P.ok[1] - f) / (P.ok[1] - P.size[1]), 0.02, 0.75);
   let wind = 0.95;
   if (h.mph != null) {
-    const a = (h.windDir - SPOT.facing) * Math.PI / 180;
-    const on = h.mph * Math.cos(a), cross = Math.abs(h.mph * Math.sin(a));
-    if (h.mph < 2) wind = 0.97;
-    else if (on < 0 && -on >= 2 && h.mph <= 12 && cross < -on) wind = 1;
+    const f = windFeel(h), on = f.on, cross = f.cross;
+    if (h.mph < 2 && f.resid < 2) wind = 0.97;
+    else if (on < 0 && -on >= 2 && f.mph <= 12 && cross < -on && f.resid < 2) wind = 1;
     else {
-      const eff = Math.max(0, on) + 0.5 * cross + Math.max(0, -on - 15) * 0.6;
+      const eff = Math.max(Math.max(0, on) * f.build, f.resid) + 0.5 * cross + Math.max(0, -on - 15) * 0.6;
       wind = clamp(0.95 - eff / (P.wind * 1.5), 0.05, 0.95);
     }
   }
-  const period = clamp(0.5 + 0.5 * ((h.period || 8) - (P.period - 4)) / 8, 0.2, 1);
+  // period is the energy-weighted period of the swells, marked down when a lot of the energy in the water is short chop
+  const period = clamp(0.5 + 0.5 * ((h.period || 8) - (P.period - 4)) / 8, 0.2, 1) * (1 - 0.35 * clamp((h.chopFrac || 0) / 0.4, 0, 1));
   let tide = 0.9;
   if (h.tide != null) {
     const mid = (P.tide[0] + P.tide[1]) / 2, half = (P.tide[1] - P.tide[0]) / 2 || 1;
     const d = Math.abs(h.tide - mid);
     tide = d <= half ? 1 - 0.15 * Math.pow(d / half, 2) : clamp(0.85 - 0.25 * (d - half), 0.3, 0.85);
+    // each break likes the tide moving one way; the wrong way costs a little
+    const tr = tideTrend(h);
+    if (SPOT.tideDir && tr && tr !== "slack" && tr !== SPOT.tideDir) tide *= 1 - (SPOT.tideDirCost || 0);
   }
-  const direction = 0.6 + 0.4 * exposure(h.dir);
+  const direction = h.src === "cdip" ? 1 : 0.6 + 0.4 * exposure(h.dir);
   const w = P.w;
   // wave power (height x period) beyond what a beginner wants counts against the day
   const power = P.power ? clamp(1 - 0.09 * Math.max(0, f * ((h.period || 8) / 10) - P.power), 0.35, 1) : 1;
@@ -1065,12 +1156,38 @@ function ratingClass(r) {
 
 /* ---------- state ---------- */
 let HOURS_DATA = [], HILO = [], BUOY = null, RAWNOW = null, CAL = 1, selected = 0, startMs = 0, liveCount = 0;
+let FEEDS = null, PIER = null, PIERNOW = null, BIAS = null, CAL2 = null;
+/* Self-correction: how the saved forecasts compared with the buoy over the last 30 days, by how far ahead the forecast was.
+   ratio above 1 means the forecast ran small. Needs 40 comparisons before it is used. */
+function learnBias() {
+  const out = { n: 0, lead: [1, 1, 1], days: 0 };
+  if (!SCOREDATA) return out;
+  const b = [[], [], []], days = new Set(), since = Date.now() / 1000 - 30 * 86400;
+  for (const sn of SCOREDATA.snaps) for (const [t, wave] of sn.hours) {
+    const lead = (t - sn.issued) / 3600, ob = SCOREDATA.obs.get(t);
+    if (t < since || !ob || !ob[1] || !wave || lead < 0) continue;
+    b[lead < 24 ? 0 : lead < 48 ? 1 : 2].push(ob[1] / wave); days.add(sn.day);
+  }
+  const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 1; };
+  out.n = b[0].length + b[1].length + b[2].length; out.days = days.size;
+  if (out.n >= 40) out.lead = b.map(a => a.length >= 12 ? clamp(med(a), 0.75, 1.33) : 1);
+  return out;
+}
+/* CDIP nearshore forecast for one break at one hour, read between the 3-hourly rows. Rows are [t, hs, tp, dp, ground, groundP, wind, windP, chop]. */
+function cdipAt(rows, tMs) {
+  const t = tMs / 1000; if (!rows || !rows.length || t < rows[0][0] - 3 * 3600 || t > rows[rows.length - 1][0]) return null;
+  let j = rows.findIndex(r => r[0] >= t); if (j <= 0) j = j === 0 ? 1 : rows.length - 1;
+  const a = rows[j - 1] || rows[0], b = rows[Math.min(j, rows.length - 1)], k = b[0] === a[0] ? 0 : clamp((t - a[0]) / (b[0] - a[0]), 0, 1);
+  if (b[0] - a[0] > 6.5 * 3600) return null;
+  const mix = i => a[i] == null ? b[i] : b[i] == null ? a[i] : a[i] + (b[i] - a[i]) * k;
+  return { hs: mix(1), tp: k < 0.5 ? a[2] : b[2], dp: k < 0.5 ? a[3] : b[3], ground: mix(4), groundP: k < 0.5 ? (a[5] || b[5]) : (b[5] || a[5]), wind: mix(6), windP: k < 0.5 ? (a[7] || b[7]) : (b[7] || a[7]), chop: mix(8) };
+}
 
 async function loadAll() {
-  liveCount = 0; CAL = 1; BUOY = null;
+  liveCount = 0; CAL = 1; CAL2 = null; BUOY = null;
   startMs = Math.floor(Date.now() / HOUR) * HOUR;
   const sample = sampleData(startMs);
-  const [m, nws, w, t, b] = await Promise.allSettled([loadMarine(), loadNWS(), loadWind(), loadTide(startMs), loadBuoy()]);
+  const [m, nws, w, t, b, m2r, fd, pr] = await Promise.allSettled([loadMarine(), loadNWS(), loadWind(), loadTide(startMs), loadBuoy(), loadMarine(REGION.model2), loadFeeds(), loadPier(), SCORE_READY]);
   const ok = (id, res, note) => { status[id] = res ? { state: "live" } : { state: "failed", note }; if (res) liveCount++; };
   const errNote = r => r.status === "rejected" ? (String(r.reason && r.reason.message || r.reason).includes("Failed to fetch") || String(r.reason).includes("TypeError") ? "Browser could not reach it (network or blocked by the site)" : String(r.reason && r.reason.message || r.reason)) : "No data returned";
   const marine = m.status === "fulfilled" ? m.value : null; ok("marine", marine, errNote(m));
@@ -1079,13 +1196,37 @@ async function loadAll() {
   const wind = w.status === "fulfilled" ? w.value : null; ok("wind", wind, errNote(w));
   const tide = t.status === "fulfilled" ? t.value : null; ok("tide", tide, errNote(t));
   BUOY = b.status === "fulfilled" ? b.value : null; ok("buoy", BUOY, errNote(b) + (b.status === "rejected" ? ". The hourly buoy update on GitHub may not have run yet." : ""));
+  const marine2 = m2r.status === "fulfilled" ? m2r.value : null; ok("marine2", marine2, errNote(m2r));
+  FEEDS = fd.status === "fulfilled" ? fd.value : null;
+  const cdip = FEEDS && FEEDS.cdip && Date.now() / 1000 - FEEDS.cdip.made < 9 * 3600 ? FEEDS.cdip : null;
+  ok("cdip", cdip, fd.status === "rejected" ? errNote(fd) : "The hourly copy is more than 9 hours old, so the open-ocean models are used instead");
+  const fresh = x => x && x.t && Date.now() - Date.parse(x.t) < 6 * HOUR;
+  ok("buoys", FEEDS && FEEDS.buoys && (fresh(FEEDS.buoys["46254"]) || fresh(FEEDS.buoys["46258"])), fd.status === "rejected" ? errNote(fd) : "No reading in the last 6 hours");
+  PIER = pr.status === "fulfilled" ? pr.value : null; ok("pier", PIER, errNote(pr));
+  // the newest half hour of measured wind, if it is recent
+  PIERNOW = null;
+  if (PIER) { const last = PIER[PIER.length - 1].t; if (Date.now() - last < 75 * 60000) { PIERNOW = pierHour(PIER, last - 30 * 60000, last + 1); if (PIERNOW) PIERNOW.t = last; } }
+  BIAS = learnBias();
 
   const usedSample = new Set();
   // buoy calibration: compare measured height with model at the buoy time
   if (BUOY && marine) {
     const tb = Math.round(BUOY.t / HOUR) * HOUR, mv = marine[tb];
+    const m2v = marine2 && marine2[tb];
     if (mv && mv.wave) CAL = clamp(BUOY.hs / mv.wave, 0.6, 1.6);
+    // the second model is lined up with the buoy too, so the two are compared on where the swell is heading, not on a fixed offset
+    if (m2v && m2v.wave) CAL2 = clamp(BUOY.hs / m2v.wave, 0.5, 2);
   }
+  // how far the nearshore forecast is from the nearshore "nowcast" (which is driven by buoy measurements), per break
+  const cfix = {};
+  if (cdip) for (const [k, sp] of Object.entries(cdip.spots)) {
+    const f0 = sp.now ? cdipAt(sp.fc, sp.now[0] * 1000) : null;
+    cfix[k] = f0 && f0.hs > 0.1 && Date.now() / 1000 - sp.now[0] < 6 * 3600 ? clamp(sp.now[1] / f0.hs, 0.65, 1.5) : 1;
+  }
+  // wind for any hour: measured on the pier if that hour has passed, otherwise forecast
+  const windFc = t0 => nv.hourly && nv.hourly[t0] && nv.hourly[t0].mph != null ? nv.hourly[t0] : wind && wind[t0] ? wind[t0] : null;
+  const windPast = t0 => (PIER && pierHour(PIER, t0)) || windFc(t0);
+  let windFix = 0;
   const tideH = tide ? tide.hourly : (usedSample.add("tide"), sample.tide.hourly);
   HILO = tide ? tide.hilo : sample.tide.hilo;
   HOURS_DATA = [];
@@ -1100,9 +1241,35 @@ async function loadAll() {
     else if (wind && wind[t0]) wd = wind[t0];
     else { wd = sample.wind[t0]; usedSample.add("wind"); }
     if (i === 0) RAWNOW = { hs: sw.wave != null ? sw.wave : sw.swell, period: sw.period, dir: sw.dir, sample: src === "" || sw === sample.marine[t0] };
-    const cal = src === "marine" && BUOY ? 1 + (CAL - 1) * Math.exp(-i / 18) : 1;
+    // open-ocean path: blend the two models' total height, correct for the bias measured over the last month, then pull toward the live buoy
+    const b2 = src === "marine" && CAL2 && marine2 && marine2[t0] && marine2[t0].wave ? marine2[t0] : null;
+    const bias = src === "marine" && BIAS ? BIAS.lead[i < 24 ? 0 : i < 48 ? 1 : 2] : 1;
+    const calA = src === "marine" && BUOY ? bias + (CAL - bias) * Math.exp(-i / 18) : bias;
+    const wA = sw.wave != null ? sw.wave * calA : null, wB = b2 ? b2.wave * CAL2 : null;
+    const cal = b2 && wA ? ((wA + wB) / 2) / sw.wave : calA;
     const hs = sw.swell * cal;
-    HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, mph: wd.mph, windDir: wd.dir, gust: wd.gust, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
+    const off = [{ kind: (sw.period || 0) >= 12 ? "Groundswell" : "Windswell", hs, period: sw.period, dir: sw.dir }];
+    if (sw.swell2 > 0.1 && sw.period2) off.push({ kind: sw.period2 >= 12 ? "Groundswell" : "Windswell", hs: sw.swell2 * cal, period: sw.period2, dir: sw.dir2 });
+    let offChop = 0;
+    if (sw.windWave > 0.1) { if (sw.windWaveP >= 7) off.push({ kind: "Windswell", hs: sw.windWave * cal, period: sw.windWaveP, dir: sw.windWaveDir != null ? sw.windWaveDir : sw.dir }); else offChop = sw.windWave * cal; }
+    // nearshore path: CDIP's point off each break, pulled toward its measured-driven nowcast for the first day
+    let near = null;
+    if (cdip) for (const [k, sp] of Object.entries(cdip.spots)) {
+      const c = cdipAt(sp.fc, t0); if (!c) continue;
+      const fx = 1 + (cfix[k] - 1) * Math.exp(-i / 12);
+      (near = near || {})[k] = Object.assign(c, { hs: c.hs * fx, ground: c.ground * fx, wind: c.wind * fx, fix: i < 12 ? cfix[k] : 1 });
+    }
+    // measured pier wind replaces the forecast for the current hour and fades out over the next few
+    wd = Object.assign({}, wd); let windSrc = "forecast";
+    if (PIERNOW && wd.mph != null) {
+      if (i === 0) { windFix = PIERNOW.mph - wd.mph; wd.mph = PIERNOW.mph; wd.dir = PIERNOW.dir; if (PIERNOW.gust) wd.gust = PIERNOW.gust; windSrc = "pier"; }
+      else if (i <= 3) { wd.mph = Math.max(0, wd.mph + windFix * Math.exp(-i / 1.5)); if (wd.gust != null) wd.gust = Math.max(wd.mph, wd.gust + windFix * Math.exp(-i / 1.5)); }
+    }
+    const past = [];
+    for (let j = 1; j <= 6; j++) { const pv = i - j >= 0 ? HOURS_DATA[i - j] && { mph: HOURS_DATA[i - j].mph, dir: HOURS_DATA[i - j].windDir } : windPast(t0 - j * HOUR); if (!pv || pv.mph == null) break; past.push({ mph: pv.mph, dir: pv.dir }); }
+    HOURS_DATA.push({ t: t0, hs, period: sw.period, dir: sw.dir, off, offChop, cdip: near, spread: b2 && wA ? Math.abs(wA - wB) / ((wA + wB) / 2) : null, modelA: wA, modelB: wB,
+      srcNote: cdip ? "" : src === "marine" ? "" : "the main wave sources did not load",
+      mph: wd.mph, windDir: wd.dir, gust: wd.gust, windSrc, past, tempF: wd.tempF, sky: wd.sky, tide: tideH[t0] != null ? tideH[t0] : null, tideNext: tideH[t0 + HOUR] });
   }
   if (!BUOY) { BUOY = Object.assign({ sample: true }, sample.buoy); usedSample.add("buoy"); }
   const live = liveCount > 0;
@@ -1126,8 +1293,20 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 let SCORED = [];
 
-function spotProfile() { const P = profile(); return Object.assign({}, P, { tide: P.tide.map(v => v + SPOT.tideShift) }); }
-function derive(h, P) { const face = faceFt(h.hs, h.period, h.dir); const f = Object.assign({}, h, { face, setFace: face * 1.4 }); return Object.assign(f, scoreHour(f, P)); }
+/* The tide range used for scoring is mostly the break's own (70%), nudged by what the board likes (30%). */
+function spotProfile() { const P = profile(), r = v => Math.round(v * 10) / 10; return Object.assign({}, P, { tide: P.tide.map((v, i) => r(0.7 * SPOT.tide[i] + 0.3 * v)) }); }
+function derive(h, P) {
+  const sea = seaAt(h);
+  const f = Object.assign({}, h, { face: sea.face, setFace: sea.face * 1.4, hs: sea.hs, period: sea.period, dir: sea.dir, parts: sea.parts, chop: sea.chop, chopFrac: sea.chopFrac, src: sea.src });
+  // low confidence: the two open-ocean models disagree, or the nearshore forecast is being pulled a long way toward what is measured
+  const why = [];
+  if (h.spread != null && h.spread > 0.35) why.push(`the two wave models disagree about where the swell is heading (${mToFt(h.modelA).toFixed(1)} ft vs ${mToFt(h.modelB).toFixed(1)} ft offshore)`);
+  const fix = sea.src === "cdip" && h.cdip[SPOT.key].fix;
+  if (fix && Math.abs(fix - 1) > 0.35) why.push(`the nearshore forecast was ${fix > 1 ? "running smaller" : "running bigger"} than what is measured right now`);
+  if (sea.src !== "cdip" && h.srcNote) why.push(h.srcNote);
+  f.lowConf = why.length ? why : null;
+  return Object.assign(f, scoreHour(f, P));
+}
 function rescore() { const P = spotProfile(); SCORED = HOURS_DATA.map(h => derive(h, P)); }
 function atSpot(key, fn) { const prev = SPOT; SPOT = SPOTS[key]; try { return fn(); } finally { SPOT = prev; } }
 function spotNow(key) { return atSpot(key, () => derive(HOURS_DATA[selected], spotProfile())); }
@@ -1217,6 +1396,35 @@ function renderRunSeg() {
   $("runSeg").innerHTML = [["cold", "Cold"], ["normal", "Normal"], ["warm", "Warm"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${runKey === k}">${l}</button>`).join("");
   $("runSeg").querySelectorAll("button").forEach(b => b.onclick = () => { runKey = b.dataset.k; store.set("waive.run", runKey); renderRunSeg(); renderSuit(); renderNow(); });
 }
+/* Plain-word grade for each of the five scores, so nobody has to read a percentage. tone: good, ok or bad. */
+function openWord(e) { return e >= 0.9 ? "wide open" : e >= 0.7 ? "mostly open" : e >= 0.45 ? "partly blocked" : "mostly blocked"; }
+function factorWord(k, h, P) {
+  const v = h.sc[k];
+  const tone = v >= 0.85 ? "good" : v >= 0.6 ? "ok" : "bad";
+  let w;
+  if (k === "size") w = v >= 0.85 ? "Just right" : h.face < P.size[0] ? (v >= 0.6 ? "A bit small" : "Too small") : (v >= 0.6 ? "A bit big" : "Too big");
+  else if (k === "wind") w = h.mph == null ? "Unknown" : h.mph < 3.5 ? "Glassy" : v >= 0.85 ? "Clean" : v >= 0.6 ? "Light chop" : /onshore/i.test(windKind(h.mph, h.windDir)) ? "Choppy" : "Bumpy";
+  else if (k === "period") w = v >= 0.85 ? "Powerful" : v >= 0.6 ? "Decent" : "Weak";
+  else if (k === "tide") w = h.tide == null ? "Unknown" : v >= 0.85 ? "Right tide" : h.tide > (P.tide[0] + P.tide[1]) / 2 ? (v >= 0.6 ? "A bit high" : "Too high") : (v >= 0.6 ? "A bit low" : "Too low");
+  else { const e = exposure(h.dir); w = h.dir == null ? "Unknown" : openWord(e)[0].toUpperCase() + openWord(e).slice(1); return { w, tone: e >= 0.9 ? "good" : e >= 0.55 ? "ok" : "bad" }; }
+  return { w, tone };
+}
+/* Plain words for the swells in the water, biggest first, plus chop when there is enough to notice. */
+function partsText(h) {
+  const a = (h.parts || []).map(p => `${p.kind.toLowerCase()} ${mToFt(p.hs).toFixed(1)} ft @ ${Math.round(p.period)} s`);
+  if (h.chop && mToFt(h.chop) >= 0.4) a.push(`chop ${mToFt(h.chop).toFixed(1)} ft`);
+  const t = a.join(" · "); return t ? t[0].toUpperCase() + t.slice(1) : t;
+}
+function windStory(h) {
+  if (h.mph == null) return "";
+  const f = windFeel(h), bits = [];
+  if (f.on >= 5 && f.onHrs >= 3) bits.push(`it has blown onshore for ${f.onHrs >= 6 ? "6 hours or more" : f.onHrs + " hours"}, so the chop has built up`);
+  else if (f.on >= 5 && f.onHrs === 0 && (h.past || []).length) bits.push("the onshore wind has only just started, so the water is not chopped up yet");
+  else if (f.left) bits.push("the wind has eased, but there is leftover bump from the last few hours");
+  if (h.gust != null && h.gust - h.mph >= 6) bits.push(`gusty (to ${Math.round(h.gust)} mph)`);
+  return bits.join("; ");
+}
+const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 60 ? m + " min ago" : Math.round(m / 60) + " hr ago"; };
 function renderNow() {
   const h = SCORED[selected]; if (!h) return;
   renderOcean();
@@ -1231,8 +1439,8 @@ function renderNow() {
   const waterSub = !BUOY || BUOY.wtmpC == null ? "Buoy has no reading right now" : BUOY.sample ? "Sample reading" : `Measured ${fmtDay.format(new Date(BUOY.wtmpT))}, ${fmtTime.format(new Date(BUOY.wtmpT))} by the Torrey Pines buoy (${Math.round(BUOY.wtmpC * 10) / 10}°C)`;
   const facts = [
     ["Surf", `${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft`, bodyScale(h.face) + `, sets to ${h.setFace.toFixed(0)} ft`],
-    ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, h.dir != null ? `from ${degToCompass(h.dir)} ${Math.round(h.dir)}°, ${Math.round(exposure(h.dir) * 100)}% open` : ""],
-    ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "")],
+    ["Swell", `${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s`, (h.parts && h.parts.length > 1 || h.chop && mToFt(h.chop) >= 0.4 ? partsText(h) + ". " : "") + (h.dir != null ? `From ${degToCompass(h.dir)} ${Math.round(h.dir)}°` + (h.src === "cdip" ? ", measured just off the break" : `, ${openWord(exposure(h.dir))}`) : "")],
+    ["Wind", h.mph != null ? `${Math.round(h.mph)} mph ${h.windDir != null ? degToCompass(h.windDir) : ""}` : "–", windKind(h.mph, h.windDir) + (h.gust ? `, gusts ${Math.round(h.gust)}` : "") + (h.windSrc === "pier" && PIERNOW ? `. Measured on Scripps Pier ${ago(PIERNOW.t)}` : "")],
     ["Tide", h.tide != null ? `${h.tide.toFixed(1)} ft ${tideTrend(h)}` : "–", nh ? `${nh.type === "H" ? "High" : "Low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""],
     ["Water", water + (BUOY && BUOY.wtmpC != null ? " " + suitChipHTML() : ""), waterSub],
     ["Buoy now", BUOY ? `${mToFt(BUOY.hs).toFixed(1)} ft @ ${BUOY.dpd} s` : "–", BUOY ? (BUOY.sample ? "Sample (Oct 16 reading)" : `${degToCompass(BUOY.mwd)} · ${fmtTime.format(new Date(BUOY.t))}`) : ""],
@@ -1242,12 +1450,14 @@ function renderNow() {
   const P = spotProfile();
   const why = {
     size: h.sc.size >= 0.97 ? `${h.face.toFixed(1)} ft is right in this board's sweet spot` : h.face >= P.size[0] && h.face <= P.size[1] ? `${h.face.toFixed(1)} ft is in your ${P.size[0]}–${P.size[1]} ft range, best around ${(P.size[0] + 0.6 * (P.size[1] - P.size[0])).toFixed(1)} ft` : h.face < P.size[0] ? `${h.face.toFixed(1)} ft is smaller than your ${P.size[0]} ft minimum` : `${h.face.toFixed(1)} ft is bigger than your ${P.size[1]} ft maximum`,
-    wind: windKind(h.mph, h.windDir) + (h.mph != null ? ` at ${Math.round(h.mph)} mph` : ""),
-    period: `${h.period ? h.period.toFixed(0) : "?"} s period; perfect is ${P.period + 4} s or more for this board`,
-    direction: h.dir == null ? "No swell direction" : `${degToCompass(h.dir)} swell is ${Math.round(exposure(h.dir) * 100)}% open to ${SPOT.name}`,
-    tide: h.tide == null ? "No tide data" : h.tide < P.tide[0] ? `Low for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for this board (best ${P.tide[0]}–${P.tide[1]} ft)` : `In your ${P.tide[0]}–${P.tide[1]} ft range, best near ${((P.tide[0] + P.tide[1]) / 2).toFixed(1)} ft`,
+    wind: windKind(h.mph, h.windDir) + (h.mph != null ? ` at ${Math.round(h.mph)} mph` : "") + (windStory(h) ? "; " + windStory(h) : ""),
+    period: `${partsText(h) || (h.period ? h.period.toFixed(0) + " s period" : "No swell data")}. Perfect is ${P.period + 4} s or more for this board` + ((h.chopFrac || 0) > 0.15 ? "; short chop is mixed in, which makes the waves messier" : ""),
+    direction: h.dir == null ? "No swell direction" : h.src === "cdip" ? `Reaching ${SPOT.name} from the ${degToCompass(h.dir)}. Blocking by the islands and points is already counted in the wave size` : `${degToCompass(h.dir)} swell is ${openWord(exposure(h.dir))} to ${SPOT.name}`,
+    tide: h.tide == null ? "No tide data" : (h.tide < P.tide[0] ? `Low for ${SPOT.name} (best ${P.tide[0]}–${P.tide[1]} ft)` : h.tide > P.tide[1] ? `High for ${SPOT.name} (best ${P.tide[0]}–${P.tide[1]} ft)` : `In ${SPOT.name}'s ${P.tide[0]}–${P.tide[1]} ft range, best near ${((P.tide[0] + P.tide[1]) / 2).toFixed(1)} ft`) + (SPOT.tideDir && h.tide >= P.tide[0] && h.tide <= P.tide[1] && tideTrend(h) && tideTrend(h) !== "slack" ? (tideTrend(h) === SPOT.tideDir ? `, and ${tideTrend(h)}, which this break likes` : `, but ${tideTrend(h)}; this break is better on a ${SPOT.tideDir} tide`) : ""),
   };
-  $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => `<div class="factor"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="bar"><i style="width:${Math.round(h.sc[k] * 100)}%"></i></span><span class="num">${Math.round(h.sc[k] * 100)}%</span><span class="why">${why[k]}</span></div>`).join("");
+  const lc = $("lowConf");
+  if (lc) { lc.hidden = !h.lowConf; lc.innerHTML = h.lowConf ? `<b>Low confidence.</b> Treat this hour as a rough guess: ${h.lowConf.join(", and ")}.` : ""; }
+  $("factors").innerHTML = ["size", "wind", "period", "tide", "direction"].map(k => { const g = factorWord(k, h, P); return `<div class="factor"><span>${{ size: "Wave size", wind: "Wind", period: "Swell power", tide: "Tide", direction: "Swell direction" }[k]}</span><span class="grade ${g.tone}">${g.w}</span><span class="why">${why[k]}</span></div>`; }).join("");
 }
 
 function renderReality() {
@@ -1279,7 +1489,26 @@ function renderReality() {
       <tr><th>Period</th><td class="num">${fm(F.period, v => v.toFixed(0) + " s")}</td><td class="num">${fm(B.dpd, v => v.toFixed(0) + " s")}</td></tr>
       <tr><th>Direction</th><td class="num">${fm(F.dir, v => degToCompass(v) + " " + Math.round(v) + "°")}</td><td class="num">${fm(B.mwd, v => degToCompass(v) + " " + Math.round(v) + "°")}</td></tr></table>
     <div class="flag ${cls}">${note}</div>
-    <span class="s">${sample ? "Sample reading" : `Buoy 46225 measured ${wtime}`}. The buoy sits offshore, so it shows the swell before it reaches ${SPOT.name}; at the beach that forecast works out to ${Math.max(0, SCORED[0].face - 0.5).toFixed(0)}–${Math.ceil(SCORED[0].face + 0.5)} ft.</span>`;
+    <span class="s">${sample ? "Sample reading" : `Buoy 46225 measured ${wtime}`}. The buoy sits offshore, so it shows the swell before it reaches ${SPOT.name}; at the beach the forecast works out to ${Math.max(0, SCORED[0].face - 0.5).toFixed(0)}–${Math.ceil(SCORED[0].face + 0.5)} ft.</span>${liveList()}`;
+}
+/* Other live measurements near Pacific Beach: the nearshore model point off this break, two more buoys, the pier wind, and what the forecast check has learned. */
+function liveList() {
+  const li = [];
+  const c = FEEDS && FEEDS.cdip && FEEDS.cdip.spots[spotKey], B = (FEEDS && FEEDS.buoys) || {};
+  if (c && c.now && Date.now() / 1000 - c.now[0] < 6 * 3600) li.push(`<b>Just off ${SPOT.name}</b> (CDIP nearshore model, fed by the buoys, ${ago(c.now[0] * 1000)}): ${mToFt(c.now[1]).toFixed(1)} ft @ ${Math.round(c.now[2])} s. Groundswell ${mToFt(c.now[4]).toFixed(1)} ft, windswell ${mToFt(c.now[6]).toFixed(1)} ft, chop ${mToFt(c.now[8]).toFixed(1)} ft.`);
+  for (const [id, where] of [["46254", "the closest buoy, off La Jolla"], ["46258", "far offshore, west of Mission Bay"]]) {
+    const b = B[id]; if (!b || !b.t || Date.now() - Date.parse(b.t) > 6 * HOUR) continue;
+    const q = b.parts;
+    li.push(`<b>${b.name} buoy</b> (${where}, ${ago(Date.parse(b.t))}): ${mToFt(b.hs).toFixed(1)} ft @ ${Math.round(b.dpd)} s` + (q && q.swH != null ? `. Swell ${mToFt(q.swH).toFixed(1)} ft @ ${Math.round(q.swP)} s, wind waves ${mToFt(q.wwH).toFixed(1)} ft @ ${Math.round(q.wwP)} s.` : "."));
+  }
+  if (PIERNOW) li.push(`<b>Wind on Scripps Pier</b> (${ago(PIERNOW.t)}): ${Math.round(PIERNOW.mph)} mph ${degToCompass(PIERNOW.dir)}${PIERNOW.gust ? ", gusts " + Math.round(PIERNOW.gust) : ""}.`);
+  const h0 = HOURS_DATA[0];
+  if (h0 && h0.modelB != null) {
+    const bad = HOURS_DATA.findIndex(x => x.spread != null && x.spread > 0.35);
+    li.push(`<b>Two wave models</b>: ` + (bad < 0 ? "they agree on where the swell is heading for the next 3 days." : `they start to disagree ${dayWord(la(HOURS_DATA[bad].t).key)} around ${hourLabel(HOURS_DATA[bad].t)}, so ratings from then on are marked low confidence.`));
+  }
+  if (BIAS && BIAS.n >= 40) { const pc = Math.round((BIAS.lead[1] - 1) * 100); li.push(`<b>Self-correction</b>: over ${BIAS.days} days of saved forecasts, the open-ocean forecast ran ${pc === 0 ? "about right" : Math.abs(pc) + "% " + (pc > 0 ? "small" : "big")} against the buoy${pc === 0 ? "" : ", so it is now adjusted by that much"}.`); }
+  return li.length ? `<h3 style="margin-top:6px">More live checks</h3><ul class="live">${li.map(x => `<li>${x}</li>`).join("")}</ul>` : "";
 }
 function computeWindows() {
   const byDay = new Map();
@@ -1381,7 +1610,7 @@ function tipHTML(h) {
       <dl><dt>${ico('surf')}Surf</dt><dd>${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)}</dd>
       <dt>${ico('swell')}Swell</dt><dd>${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s ${h.dir != null ? degToCompass(h.dir) : ""}</dd>
       <dt>${ico('wind')}Wind</dt><dd>${h.mph != null ? Math.round(h.mph) + " mph " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
-      <dt>${ico('tide')}Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>`;
+      <dt>${ico('tide')}Tide</dt><dd>${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}</dd></dl>${h.lowConf ? '<span class="s">Low confidence: sources disagree</span>' : ""}`;
 }
 function renderTimeline() {
   const svg = $("timeline"), W = 1000, L = 34, R = 8, step = (W - L - R) / HOURS;
@@ -1911,7 +2140,7 @@ function renderMap() {
   $("mapCard").innerHTML = `${breakArt(spotKey)}<span class="eyebrow">Selected break</span><h3>${sp.name}</h3>
     <div class="rate"><b class="num">${h.rating.toFixed(1)}</b><span style="background:var(${rc.c})">${rc.label}</span></div>
     <dl><dt>${ico('surf')}Surf</dt><dd class="num">${Math.max(0, h.face - 0.5).toFixed(0)}–${Math.ceil(h.face + 0.5)} ft, sets ${h.setFace.toFixed(0)} ft (${bodyScale(h.face).toLowerCase()})</dd>
-      <dt>${ico('swell')}Swell</dt><dd class="num">${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s from ${h.dir != null ? degToCompass(h.dir) : "–"}, ${Math.round(exposure(h.dir) * 100)}% open</dd>
+      <dt>${ico('swell')}Swell</dt><dd class="num">${mToFt(h.hs).toFixed(1)} ft @ ${h.period ? h.period.toFixed(0) : "–"} s from ${h.dir != null ? degToCompass(h.dir) : "–"}, ${openWord(exposure(h.dir))}</dd>
       <dt>${ico('wind')}Wind</dt><dd class="num">${h.mph != null ? Math.round(h.mph) + " mph " + degToCompass(h.windDir) + ", " + windKind(h.mph, h.windDir).toLowerCase() : "–"}</dd>
       <dt>${ico('tide')}Tide</dt><dd class="num">${h.tide != null ? h.tide.toFixed(1) + " ft " + tideTrend(h) : "–"}${nh ? `, ${nh.type === "H" ? "high" : "low"} ${nh.v.toFixed(1)} ft at ${fmtTime.format(new Date(nh.t))}` : ""}</dd></dl>
     <hr><p class="about">${sp.blurb}</p>
@@ -2102,7 +2331,7 @@ renderTheme(); applyLook(); setInterval(applyLook, 300000);
   const paint = () => { seg.innerHTML = [["stand", "Standing"], ["lie", "Lying on board"]].map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${poseKey === k}">${l}</button>`).join(""); seg.querySelectorAll("button").forEach(b => b.onclick = () => { poseKey = b.dataset.k; store.set("waive.pose", poseKey); paint(); }); };
   paint();
 })();
-loadScorecard();
+const SCORE_READY = loadScorecard();
 loadAll().then(() => {
   $("simPlay").textContent = sim.playing ? "Pause" : "Play";
   refresh(); renderSources(); requestAnimationFrame(loop);

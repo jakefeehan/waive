@@ -33,9 +33,11 @@ jobs:
               json.dump(out, open("data/buoy.json", "w"))
           PY
           rm raw.txt
+      - name: Fetch three buoys and the CDIP nearshore wave model for each break
+        run: python3 scripts/fetch_feeds.py || true
       - name: Save if changed
         run: |
           git config user.name "waive-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/buoy.json
+          git add data/buoy.json data/feeds.json
           git diff --cached --quiet || (git commit -m "Update buoy reading" && git pull --rebase -q && git push)
