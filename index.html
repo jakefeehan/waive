@@ -2158,7 +2158,7 @@ const WaveScene = (() => {
     const ref = F.zone * .75, kn = Math.max(0, Math.floor((head - ref) / spacing) + 1);
     let wait = 0; for (let j = kn; j < kn + p.every * 2; j++) if ((j % p.every) < p.perSet) { wait = (j * spacing + ref - head) / v; break; }
     // how far to jump ahead so the next set is just about to arrive: in Riding, just before the surfer turns to paddle for it
-    const c = Math.min(1, p.perSet - 1), X = pose === "ride" ? F.xL - clamp(spacing * .55, 84, 130) - 25 : -spacing * .15, m = pose === "ride" ? c : 0;
+    const c = Math.min(1, p.perSet - 1), X = pose === "ride" ? F.xL - clamp(spacing * .55, 84, 130) - 25 : ref - spacing * .6, m = pose === "ride" ? c : 0;
     let skip = 0; for (let j = Math.max(0, Math.floor((head - X) / spacing)); j < Math.floor((head - X) / spacing) + p.every * 2 + 2; j++) { const s = (j * spacing + X - head) / v; if (((j % p.every) + p.every) % p.every === m && s > 1) { skip = s; break; } }
     return { skip, inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: warpS, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
   }
