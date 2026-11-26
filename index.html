@@ -662,6 +662,7 @@ body { position: relative; }
         <div class="simbar">
           <button id="simPlay" type="button">Pause</button>
           <button id="simSpeed" type="button">Speed: 4×</button>
+          <button id="simSkip" type="button">Skip to next set</button>
           <label for="heightSel">Your height <select id="heightSel"></select></label>
           <span class="runseg" id="poseSeg" role="group" aria-label="Surfer pose"></span>
           <span id="simInfo" class="muted"></span>
@@ -2156,7 +2157,10 @@ const WaveScene = (() => {
     // what the caller needs for captions and timing
     const ref = F.zone * .75, kn = Math.max(0, Math.floor((head - ref) / spacing) + 1);
     let wait = 0; for (let j = kn; j < kn + p.every * 2; j++) if ((j % p.every) < p.perSet) { wait = (j * spacing + ref - head) / v; break; }
-    return { inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: warpS, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
+    // how far to jump ahead so the next set is just about to arrive: in Riding, just before the surfer turns to paddle for it
+    const c = Math.min(1, p.perSet - 1), X = pose === "ride" ? F.xL - clamp(spacing * .55, 84, 130) - 25 : -spacing * .15, m = pose === "ride" ? c : 0;
+    let skip = 0; for (let j = Math.max(0, Math.floor((head - X) / spacing)); j < Math.floor((head - X) / spacing) + p.every * 2 + 2; j++) { const s = (j * spacing + X - head) / v; if (((j % p.every) + p.every) % p.every === m && s > 1) { skip = s; break; } }
+    return { skip, inSet: (kn % p.every) < p.perSet, wait: Math.max(0, wait), depthFt: F.depthS, warp: warpS, setScale: bodyScale(p.set, F.Hft), avgScale: bodyScale(p.avg, F.Hft), phase: st ? st.phase : pose };
   }
   return { draw, bodyScale };
 })();
@@ -2193,7 +2197,7 @@ function drawSim(now) {
     board: { key: boardKey, label: B0.label.split(" ")[0], lenFt: (B0.len[0] + B0.len[1]) / 2, widthFt: B0.width },
     dark: parseInt(css("--bg").slice(1, 3), 16) < 90, font: "11px " + css("--font-data")
   });
-  sim.warp = r.warp;
+  sim.warp = r.warp; sim.skip = r.skip;
   const Hs = heightIn / 12, part = bodyPart(r.depthFt / Hs), tideTxt = tideNow == null ? "tide unknown, assuming 3 ft" : tideNow.toFixed(1) + " ft tide";
   const sizeTxt = `Set waves are ${r.setScale} on you (${p.set.toFixed(1)} ft). `;
   const dtxt = sizeTxt + (poseKey === "stand" ? `Where you stand the water is ${part === "over your head" ? "over your head" : "about " + part + " high"} at ${tideTxt}. Assumes the spot you stand on is ${SIM_D0} ft under water at a 0 ft tide (an approximation, not measured).`
@@ -2220,6 +2224,7 @@ function bodyPart(f) { // how high the water reaches, as a fraction of standing 
 function loop(now) { if ($("sim").offsetParent) drawSim(now); requestAnimationFrame(loop); }
 $("simPlay").onclick = () => { sim.playing = !sim.playing; $("simPlay").textContent = sim.playing ? "Pause" : "Play"; };
 $("simSpeed").onclick = () => { sim.speed = sim.speed === 1 ? 4 : sim.speed === 4 ? 10 : 1; $("simSpeed").textContent = `Speed: ${sim.speed}×${sim.speed === 1 ? " (real time)" : ""}`; };
+$("simSkip").onclick = () => { if (sim.skip > 0) sim.simTime += sim.skip; };
 
 
 /* ---------- look: sky, ocean line, theme, icons, break art ---------- */
